@@ -1,5 +1,5 @@
 # Scapegoat Tree en Go
-
+# hola
 Implementacion desde cero del arbol **Scapegoat Tree** de Galperin y Rivest
 (1993), realizada para el proyecto de Algoritmos y Estructuras de Datos.
 
