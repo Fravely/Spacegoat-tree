@@ -39,7 +39,7 @@ func ConfigFromEnv() Config {
 		Server:   getenv("SQLSERVER_HOST", "localhost"),
 		Port:     port,
 		Instance: os.Getenv("SQLSERVER_INSTANCE"),
-		Database: getenv("SQLSERVER_DATABASE", "ScapegoatDemo"),
+		Database: getenv("SQLSERVER_DATABASE", "InventarioProductosDB"),
 		User:     getenv("SQLSERVER_USER", "sa"),
 		Password: os.Getenv("SQLSERVER_PASSWORD"),
 		Encrypt:  getenv("SQLSERVER_ENCRYPT", "disable"),

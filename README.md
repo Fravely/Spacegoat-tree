@@ -11,9 +11,7 @@ Implementacion desde cero del arbol **Scapegoat Tree** de Galperin y Rivest
 - Nodos simples con clave, valor, hijo izquierdo e hijo derecho.
 - Recorrido in-order, altura y estadisticas de reconstruccion.
 - Pruebas unitarias, prueba aleatoria contra `map` y benchmarks.
-- Conexion con SQL Server para persistir productos.
-- Simulacion visual Go + Vue con operaciones de insercion, busqueda y
-  eliminacion.
+- Demo que permite observar cuando ocurren reconstrucciones.
 
 ## Ejecutar
 
@@ -22,6 +20,7 @@ Se requiere Go 1.23 o posterior.
 ```bash
 go test ./...
 go test -bench=. ./scapegoat
+go run ./cmd/demo
 ```
 
 ## Demo con SQL Server
@@ -45,7 +44,7 @@ Variables de entorno usadas por la demo:
 $env:SQLSERVER_HOST="localhost"
 $env:SQLSERVER_PORT=""
 $env:SQLSERVER_INSTANCE=""
-$env:SQLSERVER_DATABASE="ScapegoatDemo"
+$env:SQLSERVER_DATABASE="InventarioProductosDB"
 $env:SQLSERVER_USER="sa"
 $env:SQLSERVER_PASSWORD="TuPassword"
 $env:SQLSERVER_ENCRYPT="disable"
@@ -58,7 +57,7 @@ Ejecutar la demo:
 go run ./cmd/sqlserver-demo
 ```
 
-El comando crea la base `ScapegoatDemo` si no existe, crea la tabla
+El comando crea la base `InventarioProductosDB` si no existe, crea la tabla
 `dbo.Productos` si no existe, inserta un dataset de ejemplo sin duplicar
 registros, carga los productos al arbol y realiza una busqueda por `id`.
 
@@ -66,7 +65,7 @@ Si se necesita controlar exactamente la cadena de conexion, se puede usar
 `SQLSERVER_DSN`:
 
 ```powershell
-$env:SQLSERVER_DSN="server=localhost;user id=sa;password=TuPassword;database=ScapegoatDemo;encrypt=disable;TrustServerCertificate=true"
+$env:SQLSERVER_DSN="server=localhost;user id=sa;password=TuPassword;database=InventarioProductosDB;encrypt=disable;TrustServerCertificate=true"
 go run ./cmd/sqlserver-demo
 ```
 
@@ -99,14 +98,9 @@ la pagina trabaja contra SQL Server: al insertar o eliminar, primero actualiza
 la tabla `dbo.Productos` y luego actualiza el Scapegoat Tree en memoria.
 
 ```powershell
-$env:SQLSERVER_DSN="server=localhost;user id=sa;password=TuPassword;database=ScapegoatDemo;encrypt=disable;TrustServerCertificate=true"
+$env:SQLSERVER_DSN="server=localhost;user id=sa;password=TuPassword;database=InventarioProductosDB;encrypt=disable;TrustServerCertificate=true"
 go run ./cmd/simulation
 ```
-
-Si se ejecuta la simulacion sin `SQLSERVER_DSN`, se usa modo memoria y los
-cambios solo existen mientras el backend esta corriendo. Si se ejecuta con
-`SQLSERVER_DSN`, los cambios se guardan en SQL Server y luego se reflejan en el
-Scapegoat Tree en memoria.
 
 ## Idea del algoritmo
 
@@ -125,11 +119,6 @@ el algoritmo necesita `size(u)`, lo calcula recorriendo el subarbol.
 
 Al eliminar no se buscan chivos expiatorios. Cuando `n < alpha*q`, se
 reconstruye todo el arbol y se asigna `q = n`.
-
-## Nota sobre altura
-
-La altura se mide por numero de aristas. Por eso un arbol con solo la raiz tiene
-altura `0`. Si visualmente se observan 6 niveles, la altura reportada es `5`.
 
 ## Complejidad
 
@@ -150,6 +139,7 @@ amortizado.
 
 ```text
 .
+|-- cmd/demo/main.go
 |-- cmd/simulation/main.go
 |-- cmd/sqlserver-demo/main.go
 |-- database/product.go
@@ -179,9 +169,8 @@ value, found := tree.Search(42)
 
 Para structs se puede proporcionar un comparador propio con `scapegoat.New`.
 
-## Estado del proyecto
+## Siguientes entregables
 
-El proyecto incluye la implementacion del Scapegoat Tree, pruebas, benchmarks,
-conexion con SQL Server y una simulacion visual con Go + Vue. La simulacion
-puede ejecutarse en modo memoria o conectada a SQL Server mediante
-`SQLSERVER_DSN`.
+Este paquete es independiente de interfaz y persistencia. Por eso puede ser
+reutilizado directamente por la aplicacion con base de datos y por el backend
+Go de la simulacion en Vue.js, como exige el enunciado.
