@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scapegoat Tree — v3.0</title>
+    <style>
+        /* ============================================================
+           ESTILOS — sin cambios
+           ============================================================ */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+        :root {
+            --bg: #08080f;
+            --surface: #0f0f1e;
+            --card: #13132a;
+            --border: rgba(139, 92, 246, 0.18);
+            --purple: #8b5cf6;
+            --purple-lt: #a78bfa;
+            --red: #ef4444;
+            --red-lt: #f87171;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --muted: #4b4b6e;
+            --text: #e2e0ff;
+            --text-dim: #7c7a9e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+        body::before { content: ''; position: fixed; inset: 0; background-image: radial-gradient(circle, rgba(139,92,246,0.1) 1px, transparent 1px); background-size: 28px 28px; pointer-events: none; z-index: 0; }
+        .page { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 36px 24px 48px; }
+
+        .header { text-align: center; margin-bottom: 36px; }
+        .eyebrow { display: inline-flex; align-items: center; gap: 8px; background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.3); border-radius: 99px; padding: 5px 14px; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--purple-lt); margin-bottom: 16px; }
+        .pulse { width: 6px; height: 6px; background: var(--purple); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.7); } }
+        .header h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(34px, 6vw, 62px); font-weight: 700; line-height: 1.05; background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 40%, #ef4444 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -.02em; margin-bottom: 10px; }
+        .header p { font-size: 14px; color: var(--text-dim); }
+
+        .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; text-align: center; }
+        .stat .val { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: var(--purple-lt); line-height: 1; margin-bottom: 4px; }
+        .stat .val.flash { animation: flashVal .5s ease; }
+        @keyframes flashVal { 0% { transform: scale(1.3); color: #fff; } 100% { transform: scale(1); } }
+        .stat .lbl { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; }
+
+        .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
+        .inp {
+            background: var(--surface);
+            border: 1px solid rgba(139,92,246,0.25);
+            border-radius: 9px;
+            padding: 9px 14px;
+            font-size: 14px;
+            color: var(--text);
+            width: 130px;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+            transition: border-color .2s;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        .inp::-webkit-outer-spin-button,
+        .inp::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .inp:focus { border-color: var(--purple); }
+        .inp::placeholder { color: var(--muted); }
+
+        .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border: none; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s, transform .1s, box-shadow .2s; font-family: 'Inter', sans-serif; white-space: nowrap; }
+        .btn:active { transform: scale(.96); }
+        .btn:disabled { opacity: .35; cursor: not-allowed; }
+        .btn-insert { background: var(--purple); color: #fff; }
+        .btn-insert:hover:not(:disabled) { opacity: .88; box-shadow: 0 0 20px rgba(139,92,246,.45); }
+        .btn-search { background: transparent; color: var(--purple-lt); border: 1.5px solid rgba(139,92,246,.45); }
+        .btn-search:hover { background: rgba(139,92,246,.1); border-color: var(--purple); }
+        .btn-delete { background: transparent; color: var(--red-lt); border: 1.5px solid rgba(239,68,68,.4); }
+        .btn-delete:hover { background: rgba(239,68,68,.1); border-color: var(--red); }
+        .btn-demo { background: var(--green); color: #000; font-weight: 700; }
+        .btn-demo:hover:not(:disabled) { opacity: .85; box-shadow: 0 0 20px rgba(16,185,129,.4); }
+        .btn-bench { background: #0ea5e9; color: #000; font-weight: 700; }
+        .btn-bench:hover:not(:disabled) { opacity: .85; box-shadow: 0 0 20px rgba(14,165,233,.4); }
+        .btn-stop { background: var(--red); color: #fff; }
+        .btn-stop:hover { opacity: .85; }
+        .btn-ghost { background: transparent; color: var(--text-dim); border: 1.5px solid rgba(255,255,255,.15); }
+        .btn-ghost:hover { border-color: rgba(255,255,255,.4); color: var(--text); }
+        .btn-center { background: var(--amber); color: #000; font-weight: 700; }
+        .btn-center:hover:not(:disabled) { opacity: .85; box-shadow: 0 0 20px rgba(245,158,11,.4); }
+        .btn-filtro { background: transparent; color: var(--text-dim); border: 1.5px solid rgba(255,255,255,.15); }
+        .btn-filtro.active { border-color: var(--green); color: var(--green); }
+        .btn-filtro:hover { border-color: rgba(255,255,255,.4); color: var(--text); }
+        .btn-bd-on { border-color: rgba(16,185,129,0.5) !important; color: var(--green) !important; }
+        .btn-bd-off { border-color: rgba(239,68,68,0.5) !important; color: var(--red) !important; }
+
+        .sep { width: 1px; height: 26px; background: rgba(255,255,255,.07); margin: 0 2px; }
+        .spacer { flex: 1; }
+        .speed-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); }
+        .speed-wrap input[type=range] { accent-color: var(--purple); width: 80px; }
+
+        .progress-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: none; }
+        .progress-wrap.active { display: block; }
+        .prog-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+        .prog-meta strong { color: var(--purple-lt); }
+        .prog-track { height: 5px; background: rgba(255,255,255,.06); border-radius: 4px; overflow: hidden; }
+        .prog-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--red)); border-radius: 4px; transition: width .2s ease; width: 0%; position: relative; }
+        .prog-fill::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 40px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.3)); animation: shimmer 1s linear infinite; }
+        @keyframes shimmer { from { opacity: 0; } 50% { opacity: 1; } to { opacity: 0; } }
+
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; padding: 0 2px; }
+        .leg { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-dim); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        .canvas-wrap {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            margin-bottom: 14px;
+            width: 100%;
+            aspect-ratio: 1100 / 540;
+        }
+        .canvas-wrap canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            pointer-events: none;
+        }
+        .canvas-wrap canvas.layer-background { pointer-events: none; z-index: 1; }
+        .canvas-wrap canvas.layer-edges    { pointer-events: none; z-index: 2; }
+        .canvas-wrap canvas.layer-nodes    { pointer-events: none; z-index: 3; }
+        .canvas-wrap canvas.layer-text     { pointer-events: none; z-index: 4; }
+        .canvas-wrap canvas.layer-ui       { pointer-events: auto; z-index: 5; cursor: grab; }
+        .canvas-wrap canvas.layer-ui:active { cursor: grabbing; }
+
+        .status-bar { display: flex; align-items: center; justify-content: space-between; background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--purple); border-radius: 12px; padding: 11px 18px; gap: 12px; flex-wrap: wrap; }
+        .status-msg { font-size: 13px; color: var(--text-dim); flex: 1; }
+        .status-msg.ok { color: var(--green); }
+        .status-msg.err { color: var(--red-lt); }
+        .status-msg.info { color: var(--purple-lt); }
+        .status-msg.warn { color: var(--amber); }
+        .status-msg.step { color: #f97316; font-weight: 600; }
+        .status-msg.scapegoat { color: #ff0066; font-weight: 700; font-size: 14px; }
+        .badge { padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 600; letter-spacing: .05em; white-space: nowrap; }
+        .badge-purple { background: rgba(139,92,246,.15); color: var(--purple-lt); border: 1px solid rgba(139,92,246,.3); }
+        .badge-red { background: rgba(239,68,68,.12); color: var(--red-lt); border: 1px solid rgba(239,68,68,.25); }
+
+        .render-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 6px 14px;
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 8px;
+            font-variant-numeric: tabular-nums;
+        }
+        .render-stats span { display: inline-flex; align-items: center; gap: 4px; }
+        .render-stats .num { color: var(--purple-lt); font-weight: 600; }
+        .render-stats .num.simplified { color: var(--amber); }
+        .render-stats .num.index { color: var(--green); }
+
+        .node-info-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-top: 10px; display: none; font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text); grid-template-columns: 1fr 1fr; gap: 2px 16px; transition: all .2s ease; max-width: 100%; }
+        .node-info-panel.visible { display: grid; }
+        .node-info-panel .info-title { grid-column: 1 / -1; font-weight: 600; color: var(--purple-lt); font-size: 14px; margin-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; }
+        .node-info-panel .info-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .node-info-panel .info-item .label { color: var(--text-dim); font-weight: 400; }
+        .node-info-panel .info-item .value { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+        .node-info-panel .info-item .value.root { color: var(--amber); }
+        .node-info-panel .info-item .value.leaf { color: var(--green); }
+        .node-info-panel .child-group { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 16px; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 4px; margin-top: 2px; }
+        .node-info-panel .child-group .child-title { grid-column: 1 / -1; color: var(--text-dim); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+        .node-info-panel .close-btn { grid-column: 1 / -1; text-align: right; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px; }
+        .node-info-panel .close-btn button { background: transparent; border: none; color: var(--text-dim); font-size: 12px; cursor: pointer; padding: 2px 8px; border-radius: 4px; transition: 0.2s; }
+        .node-info-panel .close-btn button:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+        .history-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; margin-top: 10px; max-height: 150px; overflow-y: auto; font-size: 12px; font-family: 'Inter', sans-serif; scrollbar-width: thin; scrollbar-color: var(--purple) var(--surface); }
+        .history-panel::-webkit-scrollbar { width: 6px; }
+        .history-panel::-webkit-scrollbar-track { background: var(--surface); border-radius: 4px; }
+        .history-panel::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 4px; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 4px; color: var(--text-dim); font-weight: 600; font-size: 11px; letter-spacing: .05em; }
+        .history-entry { display: flex; gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); align-items: center; }
+        .history-entry .time { color: var(--text-dim); font-size: 10px; min-width: 50px; font-variant-numeric: tabular-nums; }
+        .history-entry .op { font-weight: 600; min-width: 80px; }
+        .history-entry .op.insert { color: var(--green); }
+        .history-entry .op.search { color: var(--amber); }
+        .history-entry .op.delete { color: var(--red-lt); }
+        .history-entry .op.rebalance { color: #ff0066; }
+        .history-entry .value { color: var(--text); font-weight: 500; }
+        .history-entry .extra { color: var(--text-dim); font-size: 11px; margin-left: auto; }
+        .history-empty { color: var(--text-dim); font-style: italic; text-align: center; padding: 12px 0; font-size: 12px; }
+        .btn-clear-history { background: transparent; color: var(--text-dim); border: none; font-size: 11px; cursor: pointer; padding: 2px 8px; border-radius: 4px; transition: 0.2s; }
+        .btn-clear-history:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+        .toast { position: fixed; bottom: 28px; right: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; font-size: 13px; color: var(--text); box-shadow: 0 8px 32px rgba(0,0,0,.5); transform: translateY(80px); opacity: 0; transition: all .35s cubic-bezier(.34,1.56,.64,1); z-index: 999; max-width: 340px; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.ok { border-left: 3px solid var(--green); }
+        .toast.err { border-left: 3px solid var(--red); }
+        .toast.info { border-left: 3px solid var(--purple); }
+        .toast.warn { border-left: 3px solid var(--amber); }
+
+        /* ── MODAL: fila encontrada en la base de datos ── */
+        .row-modal-overlay {
+            position: fixed; inset: 0; background: rgba(4,4,10,.72);
+            backdrop-filter: blur(4px); z-index: 1200;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity .25s ease;
+            padding: 20px;
+        }
+        .row-modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .row-modal {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(139,92,246,.08);
+            width: 100%; max-width: 560px; max-height: 80vh;
+            display: flex; flex-direction: column; overflow: hidden;
+            transform: translateY(16px) scale(.97); transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+        }
+        .row-modal-overlay.show .row-modal { transform: translateY(0) scale(1); }
+        .row-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 22px; border-bottom: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(139,92,246,.10), rgba(139,92,246,0));
+        }
+        .row-modal-title { display: flex; align-items: center; gap: 10px; }
+        .row-modal-title .ico {
+            width: 34px; height: 34px; border-radius: 10px;
+            background: rgba(16,185,129,.14); border: 1px solid rgba(16,185,129,.35);
+            display: flex; align-items: center; justify-content: center; color: var(--green); font-size: 16px;
+        }
+        .row-modal-title h3 { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; color: var(--text); }
+        .row-modal-title span.sub { display: block; font-size: 11px; color: var(--text-dim); font-weight: 500; margin-top: 1px; }
+        .row-modal-close {
+            background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+            width: 30px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 15px;
+            display: flex; align-items: center; justify-content: center; transition: all .15s;
+        }
+        .row-modal-close:hover { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.4); color: var(--red-lt); }
+        .row-modal-body { overflow-y: auto; padding: 6px 0; }
+        .row-table { width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif; }
+        .row-table tr { border-bottom: 1px solid rgba(139,92,246,.08); transition: background .15s; }
+        .row-table tr:last-child { border-bottom: none; }
+        .row-table tr:hover { background: rgba(139,92,246,.05); }
+        .row-table td { padding: 12px 22px; font-size: 13.5px; vertical-align: middle; }
+        .row-table td.col-name {
+            color: var(--text-dim); font-weight: 600; font-size: 11px;
+            letter-spacing: .08em; text-transform: uppercase; width: 40%;
+            white-space: nowrap;
+        }
+        .row-table td.col-value { color: var(--text); font-weight: 600; font-family: 'Space Grotesk', sans-serif; word-break: break-word; }
+        .row-table td.col-value.is-null { color: var(--text-dim); font-weight: 400; font-style: italic; font-family: 'Inter', sans-serif; }
+        .row-table td.col-value.is-key { color: var(--purple-lt); }
+        .row-modal-footer {
+            padding: 12px 22px; border-top: 1px solid var(--border);
+            font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px;
+        }
+        .row-modal-warn { padding: 14px 22px; font-size: 13px; color: var(--amber); display: flex; gap: 8px; align-items: flex-start; }
+
+        @media(max-width:600px) { .stats { grid-template-columns: repeat(2, 1fr); } .controls { flex-direction: column; align-items: stretch; } .inp { width: 100%; } .sep, .spacer { display: none; } .history-panel { max-height: 100px; } .node-info-panel { grid-template-columns: 1fr; } .node-info-panel .child-group { grid-template-columns: 1fr; } .row-modal { max-height: 88vh; } .row-table td { padding: 10px 16px; } }
+    </style>
+</head>
+<body>
+    <!-- Modal de búsqueda (existente) -->
+    <div id="rowModalOverlay" class="row-modal-overlay" onclick="if(event.target===this) closeRowModal()">
+        <div class="row-modal">
+            <div class="row-modal-header">
+                <div class="row-modal-title">
+                    <div class="ico">✓</div>
+                    <div>
+                        <h3 id="rowModalTitle">Registro encontrado</h3>
+                        <span class="sub" id="rowModalSubtitle">Tabla — base de datos</span>
+                    </div>
+                </div>
+                <button class="row-modal-close" onclick="closeRowModal()">✕</button>
+            </div>
+            <div class="row-modal-body" id="rowModalBody"></div>
+            <div class="row-modal-footer" id="rowModalFooter" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Modal de inserción (mejorado con campo clave editable y manejo de errores) -->
+    <div id="insertModalOverlay" class="row-modal-overlay" onclick="if(event.target===this) closeInsertModal()">
+        <div class="row-modal">
+            <div class="row-modal-header">
+                <div class="row-modal-title">
+                    <div class="ico" style="background:rgba(139,92,246,.14); border-color:rgba(139,92,246,.35); color:var(--purple-lt);">＋</div>
+                    <div>
+                        <h3 id="insertModalTitle">Insertar nuevo registro</h3>
+                        <span class="sub" id="insertModalSubtitle">Rellena los campos para la base de datos</span>
+                    </div>
+                </div>
+                <button class="row-modal-close" onclick="closeInsertModal()">✕</button>
+            </div>
+            <div class="row-modal-body" id="insertModalBody" style="padding: 10px 22px;"></div>
+            <div class="row-modal-footer" style="justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-ghost" onclick="closeInsertModal()">Cancelar</button>
+                <button class="btn btn-insert" id="insertModalSubmit">Insertar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="page">
+        <header class="header">
+            <div class="eyebrow"><span class="pulse"></span>Algoritmo de árbol binario de búsqueda</div>
+            <h1>Scapegoat Tree — v3.0</h1>
+            <p>Pipeline Profesional de Render · Pases independientes · Arquitectura desacoplada</p>
+        </header>
+
+        <!-- STATS -->
+        <div class="stats">
+            <div class="stat"><div class="val" id="sNodes">0</div><div class="lbl">Nodos</div></div>
+            <div class="stat"><div class="val" id="sVisible" style="color:#10b981;">0</div><div class="lbl">Visibles</div></div>
+            <div class="stat"><div class="val" id="sAlpha" style="color:#a78bfa;">0.66</div><div class="lbl">Alfa (α)</div></div>
+            <div class="stat"><div class="val" id="sHeight" style="color:#f87171;">0</div><div class="lbl">Altura</div></div>
+            <div class="stat"><div class="val" id="sRebal" style="color:#10b981;">0</div><div class="lbl">Rebalanceos</div></div>
+        </div>
+
+        <!-- CONTROLES -->
+        <div class="controls">
+            <input class="inp" id="numInput" type="number" placeholder="Número..." />
+            <button class="btn btn-insert" id="btnInsert">＋ Insertar</button>
+            <button class="btn btn-search" id="btnSearch">⌕ Buscar</button>
+            <button class="btn btn-delete" id="btnDelete">✕ Eliminar</button>
+            <div class="sep"></div>
+            <button class="btn btn-demo" id="btnDemo">▶ Demo BD</button>
+            <button class="btn btn-bench" id="btnBench">⚡ Carga Masiva</button>
+            <button class="btn btn-stop" id="btnStop" style="display:none;">⏹ Detener</button>
+            <div class="sep"></div>
+            <button class="btn btn-center" id="btnCenter">🎯 Centrar</button>
+            <button class="btn btn-filtro active" id="btnFiltro">👁️ Filtro</button>
+            <div class="spacer"></div>
+            <div class="speed-wrap">
+                <span>Vel.</span>
+                <input type="range" id="speedSlider" min="30" max="800" value="200" step="10" />
+                <span id="speedLabel">200ms</span>
+            </div>
+            <div class="sep"></div>
+            <button class="btn btn-ghost" id="btnRefresh">↺</button>
+            <button class="btn btn-ghost" id="btnClear">⊘ Limpiar</button>
+            <div class="sep"></div>
+            <button class="btn btn-ghost btn-bd-on" id="btnDBToggle">🔗 BD ON</button>
+        </div>
+
+        <!-- PROGRESO -->
+        <div class="progress-wrap" id="progWrap">
+            <div class="prog-meta">
+                <span id="progLabel">Cargando desde SQL Server...</span>
+                <strong id="progTxt">0 / 0</strong>
+            </div>
+            <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+        </div>
+
+        <!-- LEYENDA -->
+        <div class="legend">
+            <span class="leg"><span class="dot" style="background:#8b5cf6;"></span>Normal</span>
+            <span class="leg"><span class="dot" style="background:#f59e0b;"></span>Camino (búsqueda)</span>
+            <span class="leg"><span class="dot" style="background:#ff0066;"></span> Chivo expiatorio</span>
+            <span class="leg"><span class="dot" style="background:#10b981;"></span>Insertado</span>
+            <span class="leg"><span class="dot" style="background:#6366f1;"></span>Eliminado</span>
+            <span class="leg"><span class="dot" style="background:#f97316;"></span>Rebalanceo (reconstrucción)</span>
+        </div>
+
+        <!-- CANVAS con capas -->
+        <div class="canvas-wrap" id="canvasWrap">
+            <canvas class="layer-background" id="layerBg" width="1100" height="540"></canvas>
+            <canvas class="layer-edges"    id="layerEdges" width="1100" height="540"></canvas>
+            <canvas class="layer-nodes"    id="layerNodes" width="1100" height="540"></canvas>
+            <canvas class="layer-text"     id="layerText" width="1100" height="540"></canvas>
+            <canvas class="layer-ui"       id="layerUI" width="1100" height="540"></canvas>
+        </div>
+
+        <!-- STATUS BAR -->
+        <div class="status-bar">
+            <span class="status-msg info" id="statusMsg">Conectando al servidor Go en localhost:8080…</span>
+            <span class="badge badge-purple" id="badgeN">Nodos: 0</span>
+            <span class="badge badge-red" id="badgeA">α = 0.66</span>
+            <span class="badge badge-purple" id="badgeZoom" style="display:inline-block;">🔍 100%</span>
+            <span class="badge badge-purple" id="badgeVis" style="display:inline-block;">👁️ 0</span>
+            <span class="badge badge-purple" id="badgeFiltro" style="display:inline-block;">✅ Filtro ON</span>
+        </div>
+
+        <!-- ESTADÍSTICAS -->
+        <div class="render-stats" id="renderStats">
+            <span>FPS: <span class="num" id="fpsDisplay">--</span></span>
+            <span>Render: <span class="num" id="renderTimeDisplay">0</span>ms</span>
+            <span>Layout: <span class="num" id="layoutTimeDisplay">0</span>ms</span>
+            <span>Lerp: <span class="num" id="lerpTimeDisplay">0</span>ms</span>
+            <span>Dibujo: <span class="num" id="drawTimeDisplay">0</span>ms</span>
+            <span>Draw Calls: <span class="num" id="drawCallsDisplay">0</span></span>
+            <span>Nodos: <span class="num" id="drawnDisplay">0</span> / <span class="num" id="totalDisplay">0</span></span>
+            <span>Visibles: <span class="num" id="visDisplay">0</span></span>
+            <span>Descartados: <span class="num" id="culledDisplay">0</span></span>
+            <span>Simplificados: <span class="num simplified" id="simplifiedDisplay">0</span></span>
+            <span>Índice: <span class="num index" id="indexCellsDisplay">0</span> celdas</span>
+            <span>Zoom: <span class="num" id="zoomDisplay">100%</span></span>
+        </div>
+
+        <!-- PANEL DE INFORMACIÓN -->
+        <div class="node-info-panel" id="nodeInfoPanel">
+            <div class="info-title">📌 Nodo seleccionado</div>
+            <div class="info-item"><span class="label">Clave</span><span class="value" id="niKey">—</span></div>
+            <div class="info-item"><span class="label">Padre</span><span class="value" id="niParent">—</span></div>
+            <div class="info-item"><span class="label">Nivel (profundidad)</span><span class="value" id="niLevel">—</span></div>
+            <div class="info-item"><span class="label">Tamaño total del subárbol</span><span class="value" id="niSize">—</span></div>
+            <div class="info-item"><span class="label">Altura total del subárbol</span><span class="value" id="niHeight">—</span></div>
+            <div class="info-item"><span class="label">Tipo</span><span class="value" id="niType">—</span></div>
+            <div class="child-group">
+                <div class="child-title">📊 Hijos (tamaño / altura)</div>
+                <div class="info-item"><span class="label">Izquierdo</span><span class="value" id="niLeftSize">—</span></div>
+                <div class="info-item"><span class="label">Derecho</span><span class="value" id="niRightSize">—</span></div>
+                <div class="info-item"><span class="label">Altura Izquierda</span><span class="value" id="niLeftHeight">—</span></div>
+                <div class="info-item"><span class="label">Altura Derecha</span><span class="value" id="niRightHeight">—</span></div>
+            </div>
+            <div class="close-btn"><button id="closeNodeInfo">✕ Cerrar</button></div>
+        </div>
+
+        <!-- HISTORIAL -->
+        <div class="history-panel" id="historyPanel">
+            <div class="history-header">
+                <span>📋 Historial de operaciones</span>
+                <button class="btn-clear-history" id="btnClearHistory">Limpiar</button>
+            </div>
+            <div id="historyList">
+                <div class="history-empty">No hay operaciones registradas aún.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ================================================================
+        //  CONFIGURACIÓN
+        // ================================================================
+        const CONFIG = {
+            API: 'http://localhost:8080',
+            W: 1100,
+            H: 540,
+            RADIUS: 20,
+            LERP_SPEED: 0.11,
+            TOAST_DURATION: 3200,
+            COLORS: {
+                normal: '#8b5cf6',
+                visited: '#f59e0b',
+                scapegoat: '#ff0066',
+                inserted: '#10b981',
+                deleted: '#6366f1',
+                edge: 'rgba(139,92,246,0.20)',
+                edgePath: 'rgba(245,158,11,0.75)',
+                bg: '#0f0f1e',
+                dot: 'rgba(139,92,246,0.08)',
+                rebalance: '#f97316',
+                point: '#8b5cf6',
+            },
+            FADE_DURATION: 300,
+            SCALE_DURATION: 300,
+            MAX_HISTORY: 100,
+            ANIMATION_STEP_INTERVAL: 80,
+            SEARCH_STEP_INTERVAL: 40,
+            SCAPEGOAT_HIGHLIGHT_DURATION: 2500,
+        };
+
+        const RENDER_CONFIG = {
+            SHADOW_BLUR: 20,
+            EDGE_WIDTH: 1.5,
+            EDGE_PATH_WIDTH: 2.5,
+            GRID_SIZE: 28,
+            LABEL_ZOOM_THRESHOLD: 0.7,
+            BORDER_ZOOM_THRESHOLD: 0.5,
+            SHADOW_ZOOM_THRESHOLD: 0.4,
+            FULL_NODE_ZOOM_THRESHOLD: 0.3,
+            SHOW_GRID_MIN_ZOOM: 0.5,
+            NODE_BORDER_WIDTH: 1.5,
+            NODE_BORDER_COLOR: 'rgba(255,255,255,0.15)',
+            LABEL_FONT: '"Space Grotesk", Inter, sans-serif',
+            VIEW_MARGIN: 50,
+            NODE_RADIUS_MIN: 2,
+            NODE_RADIUS_MAX: 22,
+            MIN_TEXT_SIZE: 8,
+            FILTRO_ACTIVADO: true,
+            USE_NODE_CACHE: true,
+            NODE_CACHE_MAX: 5000,
+            SPATIAL_GRID_SIZE: 80,
+        };
+
+        const API_BASE = CONFIG.API;
+        const W = CONFIG.W;
+        const H = CONFIG.H;
+        const R = CONFIG.RADIUS;
+        const COL = CONFIG.COLORS;
+
+        let UI = null;
+
+        // ================================================================
+        //  MODELO DEL ÁRBOL (TreeNode lógico)
+        // ================================================================
+        class TreeNode {
+            constructor(key) {
+                this.key = key;
+                this.left = null;
+                this.right = null;
+                this.parent = null;
+                this._subtreeSize = null;
+                this._height = null;
+            }
+            getSubtreeSize() {
+                if (this._subtreeSize !== null) return this._subtreeSize;
+                let size = 1;
+                if (this.left) size += this.left.getSubtreeSize();
+                if (this.right) size += this.right.getSubtreeSize();
+                this._subtreeSize = size;
+                return size;
+            }
+            getHeight() {
+                if (this._height !== null) return this._height;
+                let h = 1;
+                let maxChild = 0;
+                if (this.left) maxChild = Math.max(maxChild, this.left.getHeight());
+                if (this.right) maxChild = Math.max(maxChild, this.right.getHeight());
+                h += maxChild;
+                this._height = h;
+                return h;
+            }
+            invalidateCache() {
+                this._subtreeSize = null;
+                this._height = null;
+                if (this.left) this.left.invalidateCache();
+                if (this.right) this.right.invalidateCache();
+            }
+        }
+
+        // ================================================================
+        //  NODO DE RENDER
+        // ================================================================
+        class RenderNode {
+            constructor(key) {
+                this.key = key;
+                this.x = 0;
+                this.y = 0;
+                this.tx = 0;
+                this.ty = 0;
+                this.opacity = 1;
+                this.scale = 1;
+                this.targetOpacity = 1;
+                this.targetScale = 1;
+                this.highlight = null;
+                this.parentKey = 0;
+            }
+            setTarget(x, y) { this.tx = x; this.ty = y; }
+            lerp(factor) {
+                const dx = this.tx - this.x;
+                const dy = this.ty - this.y;
+                if (Math.abs(dx) > 0.4 || Math.abs(dy) > 0.4) {
+                    this.x += dx * factor;
+                    this.y += dy * factor;
+                    return true;
+                } else {
+                    this.x = this.tx;
+                    this.y = this.ty;
+                    return false;
+                }
+            }
+            lerpOpacityScale(factor) {
+                let moved = false;
+                const diffO = this.targetOpacity - this.opacity;
+                if (Math.abs(diffO) > 0.01) {
+                    this.opacity += diffO * factor * 1.5;
+                    moved = true;
+                } else { this.opacity = this.targetOpacity; }
+                const diffS = this.targetScale - this.scale;
+                if (Math.abs(diffS) > 0.01) {
+                    this.scale += diffS * factor * 1.5;
+                    moved = true;
+                } else { this.scale = this.targetScale; }
+                return moved;
+            }
+        }
+
+        // ================================================================
+        //  LAYOUT ENGINE - con ajuste para claves negativas
+        // ================================================================
+        const LayoutEngine = {
+            computeLayout(rootNode, renderNodes) {
+                if (!rootNode) { renderNodes.length = 0; return; }
+                rootNode.invalidateCache();
+                const maxH = Math.max(rootNode.getHeight(), 1);
+                const levelH = Math.min(72, (H - 70) / maxH);
+                // Aumentar margen lateral para que las claves negativas no se salgan
+                const marginX = 60;
+                this._assignPositions(rootNode, marginX, W - marginX, 0, levelH, renderNodes);
+            },
+            _assignPositions(node, xLeft, xRight, depth, levelH, renderNodes) {
+                if (!node) return;
+                const leftSize = node.left ? node.left.getSubtreeSize() : 0;
+                const rightSize = node.right ? node.right.getSubtreeSize() : 0;
+                const total = leftSize + 1 + rightSize;
+                let ratio;
+                if (!node.left && node.right) { ratio = 0.25; }
+                else if (node.left && !node.right) { ratio = 0.75; }
+                else { ratio = (leftSize + 0.5) / total; }
+                const x = xLeft + ratio * (xRight - xLeft);
+                const y = 44 + depth * levelH;
+                let rn = renderNodes.find(r => r.key === node.key);
+                if (!rn) { rn = new RenderNode(node.key); renderNodes.push(rn); }
+                rn.parentKey = node.parent ? node.parent.key : 0;
+                rn.setTarget(x, y);
+                const split = x;
+                const pad = (xRight - xLeft) * 0.015 + 8;
+                this._assignPositions(node.left, xLeft, split - pad, depth + 1, levelH, renderNodes);
+                this._assignPositions(node.right, split + pad, xRight, depth + 1, levelH, renderNodes);
+            },
+            pruneRenderNodes(rootNode, renderNodes) {
+                if (!rootNode) { renderNodes.length = 0; return; }
+                const validKeys = new Set();
+                const collectKeys = (n) => {
+                    if (!n) return;
+                    validKeys.add(n.key);
+                    collectKeys(n.left);
+                    collectKeys(n.right);
+                };
+                collectKeys(rootNode);
+                for (let i = renderNodes.length - 1; i >= 0; i--) {
+                    if (!validKeys.has(renderNodes[i].key)) renderNodes.splice(i, 1);
+                }
+            }
+        };
+
+        // ================================================================
+        //  SPATIAL INDEX (Spatial Hash Grid)
+        // ================================================================
+        const SpatialIndex = {
+            _grid: new Map(),
+            _cellSize: RENDER_CONFIG.SPATIAL_GRID_SIZE,
+            _dirty: true,
+            build(renderNodes) {
+                this._grid.clear();
+                for (let i = 0, len = renderNodes.length; i < len; i++) {
+                    this.insert(renderNodes[i]);
+                }
+                this._dirty = false;
+            },
+            insert(node) {
+                const cx = Math.floor(node.x / this._cellSize);
+                const cy = Math.floor(node.y / this._cellSize);
+                const key = `${cx},${cy}`;
+                if (!this._grid.has(key)) this._grid.set(key, new Set());
+                this._grid.get(key).add(node);
+            },
+            remove(node) { this._dirty = true; },
+            query(viewport) {
+                if (this._dirty) { this.build(STATE.renderNodes); }
+                const margin = RENDER_CONFIG.VIEW_MARGIN / Camera.zoom;
+                const vLeft = viewport.left - margin;
+                const vRight = viewport.right + margin;
+                const vTop = viewport.top - margin;
+                const vBottom = viewport.bottom + margin;
+                const minCX = Math.floor(vLeft / this._cellSize);
+                const maxCX = Math.floor(vRight / this._cellSize);
+                const minCY = Math.floor(vTop / this._cellSize);
+                const maxCY = Math.floor(vBottom / this._cellSize);
+                const result = [];
+                for (let cx = minCX; cx <= maxCX; cx++) {
+                    for (let cy = minCY; cy <= maxCY; cy++) {
+                        const key = `${cx},${cy}`;
+                        const cell = this._grid.get(key);
+                        if (cell) {
+                            for (const node of cell) result.push(node);
+                        }
+                    }
+                }
+                return result;
+            },
+            getCellCount() {
+                let count = 0;
+                for (const [key, cell] of this._grid) if (cell.size > 0) count++;
+                return count;
+            },
+            markDirty() { this._dirty = true; }
+        };
+
+        // ================================================================
+        //  RENDER PASSES (pases independientes)
+        // ================================================================
+
+        // Pase de fondo
+        class BackgroundPass {
+            constructor(ctx, bgCacheCanvas, bgCacheCtx) {
+                this.ctx = ctx;
+                this.bgCacheCanvas = bgCacheCanvas;
+                this.bgCacheCtx = bgCacheCtx;
+                this.dirty = true;
+                this.bgCacheDirty = true;
+            }
+            render(camera) {
+                if (this.bgCacheDirty) {
+                    const ctx = this.bgCacheCtx;
+                    ctx.clearRect(0, 0, W, H);
+                    ctx.fillStyle = COL.bg;
+                    ctx.fillRect(0, 0, W, H);
+                    const zoom = camera.zoom;
+                    if (zoom >= RENDER_CONFIG.SHOW_GRID_MIN_ZOOM) {
+                        const viewport = camera.getViewport();
+                        ctx.fillStyle = COL.dot;
+                        const step = RENDER_CONFIG.GRID_SIZE;
+                        const margin = 20;
+                        const left = Math.floor((viewport.left - margin) / step) * step;
+                        const right = Math.ceil((viewport.right + margin) / step) * step;
+                        const top = Math.floor((viewport.top - margin) / step) * step;
+                        const bottom = Math.ceil((viewport.bottom + margin) / step) * step;
+                        ctx.beginPath();
+                        for (let x = left; x <= right; x += step) {
+                            for (let y = top; y <= bottom; y += step) {
+                                ctx.moveTo(x + 0.5, y + 0.5);
+                                ctx.arc(x, y, 1, 0, Math.PI * 2);
+                            }
+                        }
+                        ctx.fill();
+                    }
+                    this.bgCacheDirty = false;
+                }
+                this.ctx.drawImage(this.bgCacheCanvas, 0, 0);
+                this.dirty = false;
+                return 1;
+            }
+            invalidate() { this.dirty = true; this.bgCacheDirty = true; }
+            invalidateBg() { this.bgCacheDirty = true; }
+        }
+
+        // Pase de aristas
+        class EdgePass {
+            constructor(ctx) {
+                this.ctx = ctx;
+                this.dirty = true;
+            }
+            render(renderNodes, visibleNodes, camera) {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, W, H);
+                camera.apply(ctx);
+                const visibleKeys = new Set(visibleNodes.map(n => n.key));
+                let lastStyle = null;
+                let lastWidth = 0;
+                let drawCalls = 0;
+                for (let i = 0, len = visibleNodes.length; i < len; i++) {
+                    const n = visibleNodes[i];
+                    if (!n.parentKey) continue;
+                    if (!visibleKeys.has(n.parentKey)) continue;
+                    const p = renderNodes.find(r => r.key === n.parentKey);
+                    if (!p) continue;
+                    const isPath = n.highlight === 'visited' && p.highlight === 'visited';
+                    const style = isPath ? COL.edgePath : COL.edge;
+                    const width = isPath ? RENDER_CONFIG.EDGE_PATH_WIDTH : RENDER_CONFIG.EDGE_WIDTH;
+                    if (lastStyle !== style) { ctx.strokeStyle = style; lastStyle = style; drawCalls++; }
+                    if (lastWidth !== width) { ctx.lineWidth = width; lastWidth = width; drawCalls++; }
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(n.x, n.y);
+                    ctx.stroke();
+                    drawCalls++;
+                }
+                camera.restore(ctx);
+                this.dirty = false;
+                return drawCalls;
+            }
+            invalidate() { this.dirty = true; }
+        }
+
+        // Pase de nodos
+        class NodePass {
+            constructor(ctx, state) {
+                this.ctx = ctx;
+                this.state = state;
+                this.dirty = true;
+                this.simplifiedCount = 0;
+            }
+            render(visibleNodes, camera) {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, W, H);
+                camera.apply(ctx);
+                const zoom = camera.zoom;
+                const baseR = Math.min(RENDER_CONFIG.NODE_RADIUS_MAX, Math.max(RENDER_CONFIG.NODE_RADIUS_MIN, R / zoom));
+                const showShadow = zoom > RENDER_CONFIG.SHADOW_ZOOM_THRESHOLD;
+                const showBorder = zoom > RENDER_CONFIG.BORDER_ZOOM_THRESHOLD;
+                const showFullNode = zoom > RENDER_CONFIG.FULL_NODE_ZOOM_THRESHOLD;
+                const useCache = RENDER_CONFIG.USE_NODE_CACHE && zoom > 0.3;
+                let drawCalls = 0;
+                const shadowMargin = RENDER_CONFIG.SHADOW_BLUR * 1.2;
+                this.simplifiedCount = 0;
+
+                for (let i = 0, len = visibleNodes.length; i < len; i++) {
+                    const n = visibleNodes[i];
+                    const radius = baseR * n.scale;
+                    if (radius < 0.5) {
+                        ctx.fillStyle = COL.point;
+                        ctx.fillRect(n.x - 0.5, n.y - 0.5, 1, 1);
+                        drawCalls++;
+                        this.simplifiedCount++;
+                        continue;
+                    }
+                    if (!showFullNode) {
+                        ctx.globalAlpha = n.opacity;
+                        ctx.fillStyle = COL.point;
+                        ctx.beginPath();
+                        ctx.arc(n.x, n.y, Math.max(1, radius * 0.3), 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.globalAlpha = 1;
+                        drawCalls++;
+                        this.simplifiedCount++;
+                        continue;
+                    }
+                    let fill = COL.normal;
+                    if (n.highlight) fill = COL[n.highlight] || COL.normal;
+                    if (this.state.rebalanceKeys && this.state.rebalanceKeys.includes(n.key)) fill = COL.rebalance;
+                    if (this.state.activeScapegoatKey === n.key) fill = COL.scapegoat;
+
+                    if (useCache) {
+                        const roundedRadius = Math.round(radius);
+                        const borderSuffix = showBorder ? '_b' : '';
+                        const shadowSuffix = showShadow ? '_s' : '';
+                        const cacheKey = `${fill}_${roundedRadius}${borderSuffix}${shadowSuffix}_${RENDER_CONFIG.NODE_BORDER_WIDTH}`;
+                        let img = this.state.nodeImageCache.get(cacheKey);
+                        if (!img) {
+                            const size = Math.ceil((roundedRadius + shadowMargin) * 2);
+                            const offscreen = document.createElement('canvas');
+                            offscreen.width = size;
+                            offscreen.height = size;
+                            const offCtx = offscreen.getContext('2d');
+                            offCtx.clearRect(0, 0, size, size);
+                            const cx = size / 2;
+                            const cy = size / 2;
+                            if (showShadow) {
+                                offCtx.shadowColor = fill;
+                                offCtx.shadowBlur = RENDER_CONFIG.SHADOW_BLUR;
+                            }
+                            offCtx.beginPath();
+                            offCtx.arc(cx, cy, roundedRadius, 0, Math.PI * 2);
+                            offCtx.fillStyle = fill;
+                            offCtx.fill();
+                            offCtx.shadowBlur = 0;
+                            if (showBorder) {
+                                offCtx.strokeStyle = RENDER_CONFIG.NODE_BORDER_COLOR;
+                                offCtx.lineWidth = RENDER_CONFIG.NODE_BORDER_WIDTH / zoom;
+                                offCtx.stroke();
+                            }
+                            img = offscreen;
+                            this.state.nodeImageCache.set(cacheKey, img);
+                            if (this.state.nodeImageCache.size > RENDER_CONFIG.NODE_CACHE_MAX) {
+                                const keys = Array.from(this.state.nodeImageCache.keys());
+                                for (let k = 0; k < 50; k++) {
+                                    this.state.nodeImageCache.delete(keys[k]);
+                                }
+                            }
+                        }
+                        const offset = showShadow ? shadowMargin : 0;
+                        ctx.globalAlpha = n.opacity;
+                        ctx.drawImage(img, n.x - roundedRadius - offset, n.y - roundedRadius - offset);
+                        ctx.globalAlpha = 1;
+                        drawCalls++;
+                    } else {
+                        ctx.globalAlpha = n.opacity;
+                        if (showShadow) {
+                            ctx.shadowColor = fill;
+                            ctx.shadowBlur = RENDER_CONFIG.SHADOW_BLUR;
+                        } else { ctx.shadowBlur = 0; }
+                        ctx.beginPath();
+                        ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
+                        ctx.fillStyle = fill;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        if (showBorder) {
+                            ctx.strokeStyle = RENDER_CONFIG.NODE_BORDER_COLOR;
+                            ctx.lineWidth = RENDER_CONFIG.NODE_BORDER_WIDTH / zoom;
+                            ctx.stroke();
+                        }
+                        ctx.globalAlpha = 1;
+                        drawCalls += (showShadow ? 1 : 0) + 1 + (showBorder ? 1 : 0);
+                    }
+                    if (!showBorder || !showShadow) this.simplifiedCount++;
+                }
+                ctx.shadowBlur = 0;
+                camera.restore(ctx);
+                this.dirty = false;
+                return drawCalls;
+            }
+            invalidate() { this.dirty = true; }
+        }
+
+        // Pase de texto
+        class LabelPass {
+            constructor(ctx) {
+                this.ctx = ctx;
+                this.dirty = true;
+            }
+            render(visibleNodes, camera) {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, W, H);
+                const zoom = camera.zoom;
+                if (zoom < RENDER_CONFIG.LABEL_ZOOM_THRESHOLD) return 0;
+                camera.apply(ctx);
+                const baseR = Math.min(RENDER_CONFIG.NODE_RADIUS_MAX, Math.max(RENDER_CONFIG.NODE_RADIUS_MIN, R / zoom));
+                const minFontSize = RENDER_CONFIG.MIN_TEXT_SIZE / zoom;
+                let drawCalls = 0;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                for (let i = 0, len = visibleNodes.length; i < len; i++) {
+                    const n = visibleNodes[i];
+                    const radius = baseR * n.scale;
+                    const fontSize = Math.max(6, 12 / zoom) * n.scale;
+                    if (fontSize < minFontSize || radius < 1) continue;
+                    const font = `bold ${fontSize}px ${RENDER_CONFIG.LABEL_FONT}`;
+                    ctx.font = font;
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(n.key, n.x, n.y);
+                    drawCalls++;
+                }
+                camera.restore(ctx);
+                this.dirty = false;
+                return drawCalls;
+            }
+            invalidate() { this.dirty = true; }
+        }
+
+        // Pase de UI (solo limpia)
+        class UIPass {
+            constructor(ctx) {
+                this.ctx = ctx;
+                this.dirty = true;
+            }
+            render() {
+                this.ctx.clearRect(0, 0, W, H);
+                this.dirty = false;
+                return 0;
+            }
+            invalidate() { this.dirty = true; }
+        }
+
+        // ================================================================
+        //  RENDERER PRINCIPAL (orquesta los pases)
+        // ================================================================
+        const Renderer = {
+            _passes: {},
+            _dirtyPasses: new Set(),
+
+            initLayers() {
+                const ctxBg = document.getElementById('layerBg').getContext('2d');
+                const ctxEdges = document.getElementById('layerEdges').getContext('2d');
+                const ctxNodes = document.getElementById('layerNodes').getContext('2d');
+                const ctxText = document.getElementById('layerText').getContext('2d');
+                const ctxUI = document.getElementById('layerUI').getContext('2d');
+
+                const bgCacheCanvas = document.createElement('canvas');
+                bgCacheCanvas.width = W;
+                bgCacheCanvas.height = H;
+                const bgCacheCtx = bgCacheCanvas.getContext('2d');
+
+                this._passes.background = new BackgroundPass(ctxBg, bgCacheCanvas, bgCacheCtx);
+                this._passes.edges = new EdgePass(ctxEdges);
+                this._passes.nodes = new NodePass(ctxNodes, STATE);
+                this._passes.labels = new LabelPass(ctxText);
+                this._passes.ui = new UIPass(ctxUI);
+
+                this.invalidateAll();
+            },
+
+            invalidateAll() {
+                for (const key in this._passes) {
+                    this._passes[key].invalidate();
+                }
+            },
+
+            invalidateBackground() { this._passes.background.invalidate(); },
+            invalidateEdges() { this._passes.edges.invalidate(); },
+            invalidateNodes() { this._passes.nodes.invalidate(); },
+            invalidateLabels() { this._passes.labels.invalidate(); },
+            invalidateUI() { this._passes.ui.invalidate(); },
+
+            renderFrame(visibleNodes, camera) {
+                if (!UI) return;
+                const tFrameStart = performance.now();
+
+                let totalDrawCalls = 0;
+                const passes = this._passes;
+
+                if (passes.background.dirty) {
+                    totalDrawCalls += passes.background.render(camera);
+                }
+                if (passes.edges.dirty) {
+                    totalDrawCalls += passes.edges.render(STATE.renderNodes, visibleNodes, camera);
+                }
+                if (passes.nodes.dirty) {
+                    totalDrawCalls += passes.nodes.render(visibleNodes, camera);
+                }
+                if (passes.labels.dirty) {
+                    totalDrawCalls += passes.labels.render(visibleNodes, camera);
+                }
+                if (passes.ui.dirty) {
+                    totalDrawCalls += passes.ui.render();
+                }
+
+                const renderTime = performance.now() - tFrameStart;
+                this._updateStats(visibleNodes, renderTime, totalDrawCalls);
+
+                if (UI) {
+                    UI.badgeVis.textContent = `👁️ ${visibleNodes.length}`;
+                    UI.sVisible.textContent = visibleNodes.length;
+                }
+            },
+
+            _updateStats(visibleNodes, renderTime, drawCalls) {
+                const stats = RenderStats;
+                stats.renderTime = renderTime;
+                stats.drawTime = renderTime;
+                stats.drawCalls = drawCalls;
+                stats.drawnNodes = visibleNodes.length;
+                stats.totalNodes = STATE.renderNodes.length;
+                stats.visibleNodes = visibleNodes.length;
+                stats.culledNodes = STATE.renderNodes.length - visibleNodes.length;
+                stats.simplifiedNodes = this._passes.nodes.simplifiedCount || 0;
+                stats.indexCells = SpatialIndex.getCellCount();
+                stats.zoom = Camera.zoom;
+
+                stats.frameCount++;
+                const now = performance.now();
+                if (now - stats.lastFpsUpdate > 1000) {
+                    stats.fps = Math.round(stats.frameCount * 1000 / (now - stats.lastFpsUpdate));
+                    stats.frameCount = 0;
+                    stats.lastFpsUpdate = now;
+                }
+                this._updateStatsUI();
+            },
+
+            _updateStatsUI() {
+                document.getElementById('fpsDisplay').textContent = RenderStats.fps;
+                document.getElementById('renderTimeDisplay').textContent = RenderStats.renderTime.toFixed(1);
+                document.getElementById('layoutTimeDisplay').textContent = RenderStats.layoutTime ? RenderStats.layoutTime.toFixed(1) : '0.0';
+                document.getElementById('lerpTimeDisplay').textContent = RenderStats.lerpTime ? RenderStats.lerpTime.toFixed(1) : '0.0';
+                document.getElementById('drawTimeDisplay').textContent = RenderStats.drawTime.toFixed(1);
+                document.getElementById('drawCallsDisplay').textContent = RenderStats.drawCalls;
+                document.getElementById('drawnDisplay').textContent = RenderStats.drawnNodes;
+                document.getElementById('totalDisplay').textContent = RenderStats.totalNodes;
+                document.getElementById('visDisplay').textContent = RenderStats.visibleNodes;
+                document.getElementById('culledDisplay').textContent = RenderStats.culledNodes;
+                document.getElementById('simplifiedDisplay').textContent = RenderStats.simplifiedNodes;
+                document.getElementById('indexCellsDisplay').textContent = RenderStats.indexCells;
+                document.getElementById('zoomDisplay').textContent = Math.round(RenderStats.zoom * 100) + '%';
+            },
+
+            markCameraDirty() {
+                this.invalidateBackground();
+                this.invalidateEdges();
+                this.invalidateNodes();
+                this.invalidateLabels();
+            }
+        };
+
+        const RenderStats = {
+            frameCount: 0,
+            lastFpsUpdate: 0,
+            fps: 0,
+            drawnNodes: 0,
+            visibleNodes: 0,
+            totalNodes: 0,
+            culledNodes: 0,
+            simplifiedNodes: 0,
+            indexCells: 0,
+            renderTime: 0,
+            layoutTime: 0,
+            lerpTime: 0,
+            drawTime: 0,
+            drawCalls: 0,
+            zoom: 1,
+        };
+
+        // ================================================================
+        //  ESTADO GLOBAL
+        // ================================================================
+        const STATE = {
+            root: null,
+            renderNodes: [],
+            rebalCount: 0,
+            loading: false,
+            loadTimer: null,
+            totalLoad: 0,
+            loadedN: 0,
+            rebalanceKeys: [],
+            rebalanceTimer: null,
+            history: [],
+            historyStartTime: Date.now(),
+            activeScapegoatKey: null,
+            operationQueue: [],
+            isProcessingQueue: false,
+            nodeImageCache: new Map(),
+            nodeCacheDirty: true,
+            animLoopRunning: false,
+            layoutVersion: 0,
+            renderVersion: 0,
+            layoutDirty: true,
+        };
+
+        // ================================================================
+        //  CÁMARA
+        // ================================================================
+        const Camera = {
+            x: 0,
+            y: 0,
+            zoom: 1,
+            apply(ctx) { ctx.save(); ctx.translate(this.x, this.y); ctx.scale(this.zoom, this.zoom); },
+            restore(ctx) { ctx.restore(); },
+            reset() {
+                this.x = 0; this.y = 0; this.zoom = 1;
+                if (UI) UI.badgeZoom.textContent = '🔍 100%';
+                STATE.layoutDirty = true;
+            },
+            worldToScreen(wx, wy) { return { x: wx * this.zoom + this.x, y: wy * this.zoom + this.y }; },
+            screenToWorld(sx, sy) { return { x: (sx - this.x) / this.zoom, y: (sy - this.y) / this.zoom }; },
+            getViewport() {
+                const left = -this.x / this.zoom;
+                const right = (W - this.x) / this.zoom;
+                const top = -this.y / this.zoom;
+                const bottom = (H - this.y) / this.zoom;
+                return { left, right, top, bottom };
+            }
+        };
+
+        const ZOOM_CONFIG = { MIN: 0.2, MAX: 5.0, STEP: 0.1 };
+
+        function zoomAt(factor, centerX, centerY) {
+            const worldPos = Camera.screenToWorld(centerX, centerY);
+            let newZoom = Camera.zoom * factor;
+            newZoom = Math.max(ZOOM_CONFIG.MIN, Math.min(ZOOM_CONFIG.MAX, newZoom));
+            const newWorldPos = Camera.screenToWorld(centerX, centerY);
+            Camera.x += (worldPos.x - newWorldPos.x) * newZoom;
+            Camera.y += (worldPos.y - newWorldPos.y) * newZoom;
+            Camera.zoom = newZoom;
+            if (UI) UI.badgeZoom.textContent = `🔍 ${Math.round(Camera.zoom * 100)}%`;
+            STATE.layoutDirty = true;
+            startAnim();
+        }
+
+        // ================================================================
+        //  FUNCIONES DE ACTUALIZACIÓN DEL ÁRBOL
+        // ================================================================
+        function buildTreeFromRaw(rawNodes) {
+            if (!rawNodes || !rawNodes.length) return null;
+            const map = new Map();
+            for (const rn of rawNodes) {
+                const node = new TreeNode(rn.key);
+                node.parent = null;
+                map.set(rn.key, node);
+            }
+            let root = null;
+            for (const rn of rawNodes) {
+                const node = map.get(rn.key);
+                if (rn.parentKey === 0) { root = node; }
+                else {
+                    const parent = map.get(rn.parentKey);
+                    if (parent) {
+                        node.parent = parent;
+                        if (rn.isLeft === true) { parent.left = node; } else { parent.right = node; }
+                    }
+                }
+            }
+            return root;
+        }
+
+        function updateRenderNodes(root, renderNodes) {
+            LayoutEngine.pruneRenderNodes(root, renderNodes);
+            LayoutEngine.computeLayout(root, renderNodes);
+            SpatialIndex.markDirty();
+            return renderNodes;
+        }
+
+        function applyResponse(data, hlKey, hlType) {
+            const raw = data.treeNodes || [];
+            const newRoot = buildTreeFromRaw(raw);
+            STATE.root = newRoot;
+            updateRenderNodes(newRoot, STATE.renderNodes);
+
+            if (hlKey !== undefined && hlType) {
+                const rn = STATE.renderNodes.find(r => r.key === hlKey);
+                if (rn) rn.highlight = hlType;
+            }
+
+            if (data.scapegoatKey) {
+                const rn = STATE.renderNodes.find(r => r.key === data.scapegoatKey);
+                if (rn) rn.highlight = 'scapegoat';
+                STATE.activeScapegoatKey = data.scapegoatKey;
+                const rebalKeys = [];
+                const collect = (node) => {
+                    if (!node) return;
+                    rebalKeys.push(node.key);
+                    collect(node.left);
+                    collect(node.right);
+                };
+                if (newRoot) {
+                    const findNode = (n, key) => {
+                        if (!n) return null;
+                        if (n.key === key) return n;
+                        return findNode(n.left, key) || findNode(n.right, key);
+                    };
+                    const sgNode = findNode(newRoot, data.scapegoatKey);
+                    if (sgNode) collect(sgNode);
+                }
+                if (rebalKeys.length) {
+                    STATE.rebalanceKeys = rebalKeys;
+                    animateRebalance(rebalKeys, data.scapegoatKey);
+                    addHistoryEntry('Rebalanceo', `nodo ${data.scapegoatKey}`, `subárbol de ${rebalKeys.length} nodos`);
+                }
+            }
+
+            STATE.layoutVersion++;
+            STATE.renderVersion++;
+
+            if (hlKey !== undefined && hlType === 'inserted') {
+                const rn = STATE.renderNodes.find(r => r.key === hlKey);
+                if (rn) {
+                    rn.opacity = 0;
+                    rn.scale = 0.5;
+                    rn.targetOpacity = 1;
+                    rn.targetScale = 1;
+                }
+            }
+
+            flash('sNodes', data.size ?? STATE.renderNodes.length);
+            setEl('sHeight', data.height ?? 0);
+            setEl('sAlpha', data.alpha ?? 0.66);
+            setEl('badgeN', 'Nodos: ' + (data.size ?? STATE.renderNodes.length));
+            if (data.rebalanced) {
+                STATE.rebalCount++;
+                flash('sRebal', STATE.rebalCount);
+            }
+
+            STATE.layoutDirty = true;
+            Renderer.invalidateEdges();
+            Renderer.invalidateNodes();
+            Renderer.invalidateLabels();
+            startAnim();
+        }
+
+        // ================================================================
+        //  BUCLE DE ANIMACIÓN (orquestador)
+        // ================================================================
+        let animLoopId = null;
+
+        function animLoop() {
+            const tLerpStart = performance.now();
+            let moving = false;
+            const lerpFactor = CONFIG.LERP_SPEED;
+            const renderNodes = STATE.renderNodes;
+
+            for (let i = 0, len = renderNodes.length; i < len; i++) {
+                const n = renderNodes[i];
+                if (n.lerp(lerpFactor)) moving = true;
+                if (n.lerpOpacityScale(lerpFactor)) moving = true;
+            }
+            RenderStats.lerpTime = performance.now() - tLerpStart;
+
+            if (moving) {
+                Renderer.invalidateEdges();
+                Renderer.invalidateNodes();
+                Renderer.invalidateLabels();
+                SpatialIndex.markDirty();
+            }
+
+            if (STATE.layoutDirty) {
+                if (STATE.root) {
+                    LayoutEngine.computeLayout(STATE.root, STATE.renderNodes);
+                    STATE.layoutDirty = false;
+                    STATE.renderVersion++;
+                    Renderer.invalidateEdges();
+                    Renderer.invalidateNodes();
+                    Renderer.invalidateLabels();
+                    SpatialIndex.markDirty();
+                } else {
+                    STATE.layoutDirty = false;
+                    Renderer.invalidateAll();
+                    SpatialIndex.markDirty();
+                }
+            }
+
+            const viewport = Camera.getViewport();
+            let visibleNodes = [];
+            if (RENDER_CONFIG.FILTRO_ACTIVADO) {
+                visibleNodes = SpatialIndex.query(viewport);
+            } else {
+                visibleNodes = STATE.renderNodes.slice();
+            }
+
+            const anyDirty = Object.values(Renderer._passes).some(p => p.dirty);
+            if (anyDirty || moving) {
+                Renderer.renderFrame(visibleNodes, Camera);
+                if (moving || anyDirty) {
+                    animLoopId = requestAnimationFrame(animLoop);
+                } else {
+                    animLoopId = null;
+                    STATE.animLoopRunning = false;
+                }
+            } else {
+                animLoopId = null;
+                STATE.animLoopRunning = false;
+            }
+        }
+
+        function startAnim() {
+            if (!animLoopId) {
+                animLoopId = requestAnimationFrame(animLoop);
+                STATE.animLoopRunning = true;
+            }
+        }
+
+        // ================================================================
+        //  FUNCIONES DE ANIMACIÓN (highlight, rebalance)
+        // ================================================================
+        function animateRebalance(keys, scapegoatKey) {
+            STATE.activeScapegoatKey = scapegoatKey;
+            STATE.rebalanceKeys = keys;
+            if (scapegoatKey) {
+                setStatus(`🔴 Chivo expiatorio: nodo ${scapegoatKey}`, 'scapegoat');
+            }
+            if (STATE.rebalanceTimer) clearTimeout(STATE.rebalanceTimer);
+            STATE.rebalanceTimer = setTimeout(() => {
+                STATE.rebalanceKeys = [];
+                STATE.activeScapegoatKey = null;
+                setStatus('Rebalanceo completado', 'info');
+                STATE.layoutDirty = true;
+                startAnim();
+            }, CONFIG.SCAPEGOAT_HIGHLIGHT_DURATION);
+            STATE.layoutDirty = true;
+            Renderer.invalidateLabels();
+            startAnim();
+        }
+
+        function clearHighlights() {
+            for (const rn of STATE.renderNodes) rn.highlight = null;
+            STATE.activeScapegoatKey = null;
+            STATE.rebalanceKeys = [];
+            STATE.layoutDirty = true;
+            Renderer.invalidateLabels();
+            startAnim();
+        }
+
+        function animateNodeAppearance(key) {
+            const rn = STATE.renderNodes.find(r => r.key === key);
+            if (rn) {
+                rn.opacity = 0;
+                rn.scale = 0.5;
+                rn.targetOpacity = 1;
+                rn.targetScale = 1;
+            }
+            STATE.layoutDirty = true;
+            Renderer.invalidateNodes();
+            Renderer.invalidateLabels();
+            startAnim();
+        }
+
+        // ================================================================
+        //  API REST
+        // ================================================================
+        async function api(endpoint, method = 'GET', body = null) {
+            const opts = { method };
+            if (body) opts.body = body;
+            const res = await fetch(`${API_BASE}${endpoint}`, opts);
+            if (!res.ok) {
+                let errorMsg = `Error ${res.status}`;
+                try {
+                    const errJson = await res.json();
+                    if (errJson.error) errorMsg = errJson.error;
+                } catch (e) {
+                    const text = await res.text();
+                    if (text) errorMsg = text;
+                }
+                throw new Error(errorMsg);
+            }
+            return res.json();
+        }
+
+        // ================================================================
+        //  COLA DE OPERACIONES
+        // ================================================================
+        function enqueueOperation(type, key) {
+            STATE.operationQueue.push({ type, key });
+            if (!STATE.isProcessingQueue) processQueue();
+        }
+
+        function processQueue() {
+            if (STATE.operationQueue.length === 0) {
+                STATE.isProcessingQueue = false;
+                if (UI) UI.numInput.focus();
+                return;
+            }
+            STATE.isProcessingQueue = true;
+            const op = STATE.operationQueue.shift();
+            switch (op.type) {
+                case 'insert': executeInsert(op.key, () => processQueue()); break;
+                case 'search': executeSearch(op.key, () => processQueue()); break;
+                case 'delete': executeDelete(op.key, () => processQueue()); break;
+                default: processQueue(); break;
+            }
+        }
+
+        // ================================================================
+        //  EJECUCIÓN DE OPERACIONES
+        // ================================================================
+        function simulateInsertionPath(key) {
+            const path = [];
+            let current = STATE.root;
+            while (current) {
+                path.push(current.key);
+                if (key === current.key) break;
+                if (key < current.key) current = current.left;
+                else current = current.right;
+            }
+            return path;
+        }
+
+        function executeInsert(key, callback) {
+            for (const rn of STATE.renderNodes) rn.highlight = null;
+            const path = simulateInsertionPath(key);
+            if (path.length === 0) { doInsertion(key, callback); return; }
+            let index = 0;
+            const interval = CONFIG.ANIMATION_STEP_INTERVAL;
+            function step() {
+                if (index >= path.length) { doInsertion(key, callback); return; }
+                const k = path[index];
+                const rn = STATE.renderNodes.find(r => r.key === k);
+                if (rn) rn.highlight = 'visited';
+                STATE.layoutDirty = true;
+                startAnim();
+                setStatus(`Insertando: comparando ${k}`, 'step');
+                index++;
+                setTimeout(step, interval);
+            }
+            step();
+        }
+
+        async function doInsertion(key, callback) {
+            try {
+                const data = await api(`/insert?key=${key}`, 'POST');
+                applyResponse(data, key, 'inserted');
+                setStatus(`Insertado ${key}.`, 'ok');
+                toast(`Nodo ${key} insertado`, 'ok');
+                addHistoryEntry('Insertar', key, data.rebalanced ? '⚖️ rebalanceo' : '');
+                if (data.rebalanced) toast('🔴 ¡Rebalanceo! Chivo expiatorio encontrado', 'info');
+                setTimeout(clearHighlights, CONFIG.SCAPEGOAT_HIGHLIGHT_DURATION + 500);
+                if (callback) callback();
+            } catch (e) {
+                setStatus('Error al insertar: ' + e.message, 'err');
+                toast('Error al insertar: ' + e.message, 'err');
+                if (callback) callback();
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function openRowModal(row, keyColumnGuess) {
+            const overlay = document.getElementById('rowModalOverlay');
+            const body = document.getElementById('rowModalBody');
+            const subtitle = document.getElementById('rowModalSubtitle');
+
+            const entries = Object.entries(row);
+            subtitle.textContent = `${entries.length} columna${entries.length === 1 ? '' : 's'} encontradas`;
+
+            body.innerHTML = '<table class="row-table">' + entries.map(([col, val]) => {
+                const isNull = (val === null || val === undefined);
+                const isKey = keyColumnGuess && col.toLowerCase() === keyColumnGuess.toLowerCase();
+                const valClass = 'col-value' + (isNull ? ' is-null' : '') + (isKey ? ' is-key' : '');
+                const displayVal = isNull ? 'NULL' : escapeHtml(String(val));
+                return `<tr><td class="col-name">${escapeHtml(col)}</td><td class="${valClass}">${displayVal}</td></tr>`;
+            }).join('') + '</table>';
+
+            overlay.classList.add('show');
+        }
+
+        function closeRowModal() {
+            document.getElementById('rowModalOverlay').classList.remove('show');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeRowModal();
+        });
+
+        function showRowInfo(row, dbWarning, key) {
+            if (dbWarning) {
+                toast(dbWarning, 'warn');
+                return;
+            }
+            if (!row) return;
+            openRowModal(row, String(key));
+        }
+
+        // ================================================================
+        //  MODAL DE INSERCIÓN (mejorado con campo clave editable y errores)
+        // ================================================================
+        let dbEnabled = true;
+        let pendingInsertKey = null;
+
+        // Configuración de la clave de la tabla (ajústalo a tu columna)
+        const appConfig = {
+            Table: {
+                KeyColumn: 'id'
+            }
+        };
+
+        function openInsertModal(key) {
+            pendingInsertKey = key;
+            const overlay = document.getElementById('insertModalOverlay');
+            const body = document.getElementById('insertModalBody');
+
+            body.innerHTML = '<div style="text-align:center; color: var(--text-dim); padding: 20px;">Cargando columnas...</div>';
+            overlay.classList.add('show');
+
+            fetch(API_BASE + '/table-columns')
+                .then(res => {
+                    if (!res.ok) throw new Error('No se pudo obtener la estructura de la tabla');
+                    return res.json();
+                })
+                .then(columns => {
+                    if (!columns || columns.length === 0) {
+                        body.innerHTML = '<div style="color: var(--red-lt);">No se encontraron columnas en la tabla.</div>';
+                        return;
+                    }
+                    let html = '<div style="display: grid; gap: 12px; margin-top: 4px;">';
+                    // Campo clave (editable)
+                    const keyColName = appConfig.Table.KeyColumn || 'ID';
+                    html += `
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">${keyColName} (clave) *</label>
+                            <input type="number" name="key" class="inp" style="width:100%;" value="${key}" required placeholder="${keyColName}">
+                        </div>
+                    `;
+                    // Resto de columnas
+                    columns.forEach(col => {
+                        if (col.isKey) return; // ya está arriba
+                        const requiredAttr = col.isNullable ? '' : ' required';
+                        const inputType = getInputType(col.dataType);
+                        html += `
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <label style="font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    ${col.name} ${col.isNullable ? '(opcional)' : ''}
+                                </label>
+                                <input type="${inputType}" name="${col.name}" class="inp" style="width:100%;" ${requiredAttr} placeholder="${col.name}">
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    body.innerHTML = html;
+                    const keyInput = body.querySelector('input[name="key"]');
+                    if (keyInput) keyInput.focus();
+                })
+                .catch(err => {
+                    body.innerHTML = `<div style="color: var(--red-lt);">Error: ${err.message}</div>`;
+                });
+        }
+
+        function getInputType(dataType) {
+            const dt = dataType.toLowerCase();
+            if (dt.includes('int') || dt.includes('decimal') || dt.includes('numeric') || dt.includes('float')) return 'number';
+            if (dt.includes('date') || dt.includes('datetime')) return 'datetime-local';
+            if (dt.includes('bit')) return 'checkbox';
+            return 'text';
+        }
+
+        function closeInsertModal() {
+            document.getElementById('insertModalOverlay').classList.remove('show');
+            pendingInsertKey = null;
+        }
+
+        function submitInsertForm() {
+            const body = document.getElementById('insertModalBody');
+            const inputs = body.querySelectorAll('input');
+            const payload = {};
+            inputs.forEach(inp => {
+                let val = inp.value;
+                if (inp.type === 'checkbox') val = inp.checked;
+                else if (inp.type === 'number' && val !== '') val = parseFloat(val);
+                payload[inp.name] = val;
+            });
+
+            const key = payload.key;
+            if (key === undefined || key === '') {
+                toast('La clave es obligatoria', 'warn');
+                setStatus('La clave es obligatoria', 'warn');
+                return;
+            }
+            const numKey = Number(key);
+            if (isNaN(numKey) || !Number.isInteger(numKey)) {
+                toast('La clave debe ser un número entero', 'warn');
+                setStatus('La clave debe ser un número entero', 'warn');
+                return;
+            }
+
+            // Enviar al backend
+            fetch(API_BASE + '/insert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(res => {
+                    if (!res.ok) {
+                        // Intentar parsear mensaje de error del servidor
+                        return res.json().then(errData => {
+                            throw new Error(errData.error || `Error ${res.status}`);
+                        }).catch(() => {
+                            throw new Error(`Error ${res.status}: ${res.statusText}`);
+                        });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    applyResponse(data, numKey, 'inserted');
+                    setStatus(`Insertado ${numKey} con todos los campos.`, 'ok');
+                    toast(`Nodo ${numKey} insertado (BD activa)`, 'ok');
+                    addHistoryEntry('Insertar (BD)', numKey, 'con campos');
+                    closeInsertModal();
+                    clearInput();
+                    if (data.rebalanced) toast('🔴 ¡Rebalanceo! Chivo expiatorio encontrado', 'info');
+                })
+                .catch(err => {
+                    const msg = err.message || 'Error al insertar';
+                    // Mostrar el error en el toast y en la barra de estado
+                    setStatus('❌ ' + msg, 'err');
+                    toast('❌ ' + msg, 'err');
+                    // NO cerrar el modal para que el usuario pueda corregir
+                });
+        }
+
+        // --- MODIFICADO: insertNode ahora abre modal si dbEnabled está activo ---
+        function insertNode() {
+            const key = getInput();
+            if (isNaN(key)) { toast('Ingresa un número válido', 'warn'); return; }
+            if (dbEnabled) {
+                // BD activa: abrir modal para rellenar todos los campos
+                openInsertModal(key);
+            } else {
+                // BD desactivada: modo solo memoria
+                clearInput();
+                enqueueOperation('insert', key);
+                if (UI) UI.numInput.focus();
+            }
+        }
+
+        // ================================================================
+        //  BÚSQUEDA Y ELIMINACIÓN (sin cambios relevantes)
+        // ================================================================
+        function executeSearch(key, callback) {
+            for (const rn of STATE.renderNodes) rn.highlight = null;
+            setStatus(`Buscando ${key}...`, 'step');
+            api(`/search?key=${key}`)
+                .then(data => {
+                    if (data.found) {
+                        const path = data.path || [];
+                        const interval = CONFIG.SEARCH_STEP_INTERVAL;
+                        path.forEach((k, i) => {
+                            setTimeout(() => {
+                                const rn = STATE.renderNodes.find(r => r.key === k);
+                                if (rn) rn.highlight = 'visited';
+                                STATE.layoutDirty = true;
+                                startAnim();
+                            }, i * interval);
+                        });
+                        setTimeout(() => {
+                            setStatus(`Encontrado ${key}  —  ruta: ${path.join(' → ')}`, 'ok');
+                            toast(`Encontrado en ${path.length} pasos`, 'ok');
+                            addHistoryEntry('Buscar', key, `${path.length} pasos`);
+                            showRowInfo(data.row, data.dbWarning, key);
+                            setTimeout(() => { clearHighlights(); if (callback) callback(); }, 1000);
+                        }, path.length * interval + 200);
+                    } else {
+                        const msg = `El nodo ${key} no existe en el árbol.`;
+                        setStatus(msg, 'warn');
+                        toast(msg, 'warn');
+                        addHistoryEntry('Buscar', key, '❌ no encontrado');
+                        if (callback) callback();
+                    }
+                })
+                .catch(e => {
+                    const errMsg = e.message || 'Error en la búsqueda';
+                    setStatus('Error en búsqueda: ' + errMsg, 'err');
+                    toast('Error en búsqueda: ' + errMsg, 'err');
+                    if (callback) callback();
+                });
+        }
+
+        function executeDelete(key, callback) {
+            const node = STATE.renderNodes.find(r => r.key === key);
+            if (node) {
+                node.targetOpacity = 0;
+                node.targetScale = 0.3;
+                setTimeout(() => { doDelete(key, callback); }, CONFIG.FADE_DURATION + 50);
+            } else {
+                doDelete(key, callback);
+            }
+            startAnim();
+        }
+
+        async function doDelete(key, callback) {
+            try {
+                const data = await api(`/delete?key=${key}`, 'POST');
+                applyResponse(data, key, 'deleted');
+                setStatus(`Eliminado ${key}.`, 'warn');
+                toast(`Nodo ${key} eliminado`, 'warn');
+                addHistoryEntry('Eliminar', key, data.rebalanced ? '⚖️ rebalanceo' : '');
+                if (data.rebalanced) toast('Rebalanceo tras eliminación', 'info');
+                clearInput();
+                setTimeout(clearHighlights, 1400);
+                if (callback) callback();
+            } catch (e) {
+                let msg = e.message || 'Error al eliminar';
+                if (msg.toLowerCase().includes('nodo no encontrado')) msg = `El nodo ${key} no existe en el árbol.`;
+                setStatus(msg, 'warn');
+                toast(msg, 'warn');
+                if (callback) callback();
+            }
+        }
+
+        // ================================================================
+        //  HISTORIAL
+        // ================================================================
+        function addHistoryEntry(type, value, extra = '') {
+            if (!UI) return;
+            const now = Date.now();
+            const elapsed = ((now - STATE.historyStartTime) / 1000).toFixed(1);
+            STATE.history.unshift({ time: elapsed, type, value, extra });
+            if (STATE.history.length > CONFIG.MAX_HISTORY) STATE.history.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (!UI) return;
+            const container = UI.historyList;
+            if (!container) return;
+            if (!STATE.history.length) {
+                container.innerHTML = `<div class="history-empty">No hay operaciones registradas aún.</div>`;
+                return;
+            }
+            let html = '';
+            STATE.history.forEach(entry => {
+                const opClass = entry.type.toLowerCase();
+                const extraHtml = entry.extra ? `<span class="extra">${entry.extra}</span>` : '';
+                html += `
+                    <div class="history-entry">
+                        <span class="time">${entry.time}s</span>
+                        <span class="op ${opClass}">${entry.type}</span>
+                        <span class="value">${entry.value}</span>
+                        ${extraHtml}
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function clearHistory() { STATE.history = []; renderHistory(); toast('Historial limpiado', 'info'); }
+        function initHistory() { document.getElementById('btnClearHistory').addEventListener('click', clearHistory); }
+
+        // ================================================================
+        //  PANEL DE INFORMACIÓN (sin cambios)
+        // ================================================================
+        function getLeftChild(nodeKey) {
+            const rn = STATE.renderNodes.find(r => r.key === nodeKey);
+            if (!rn) return null;
+            return STATE.renderNodes.find(r => r.parentKey === nodeKey && r.key < nodeKey);
+        }
+        function getRightChild(nodeKey) {
+            const rn = STATE.renderNodes.find(r => r.key === nodeKey);
+            if (!rn) return null;
+            return STATE.renderNodes.find(r => r.parentKey === nodeKey && r.key > nodeKey);
+        }
+        function getSubtreeHeight(nodeKey) {
+            const findNode = (n, key) => {
+                if (!n) return null;
+                if (n.key === key) return n;
+                return findNode(n.left, key) || findNode(n.right, key);
+            };
+            const node = findNode(STATE.root, nodeKey);
+            return node ? node.getHeight() : 0;
+        }
+        function getSubtreeSize(nodeKey) {
+            const findNode = (n, key) => {
+                if (!n) return null;
+                if (n.key === key) return n;
+                return findNode(n.left, key) || findNode(n.right, key);
+            };
+            const node = findNode(STATE.root, nodeKey);
+            return node ? node.getSubtreeSize() : 0;
+        }
+        function getNodeDepth(nodeKey) {
+            let depth = 0;
+            let current = STATE.renderNodes.find(r => r.key === nodeKey);
+            if (!current) return 0;
+            while (current.parentKey !== 0) {
+                depth++;
+                current = STATE.renderNodes.find(r => r.key === current.parentKey);
+                if (!current) break;
+            }
+            return depth;
+        }
+
+        function showNodeInfo(nodeKey) {
+            const panel = document.getElementById('nodeInfoPanel');
+            if (!panel) return;
+            const rn = STATE.renderNodes.find(r => r.key === nodeKey);
+            if (!rn) return;
+            const depth = getNodeDepth(nodeKey);
+            const size = getSubtreeSize(nodeKey);
+            const height = getSubtreeHeight(nodeKey);
+            const leftChild = getLeftChild(nodeKey);
+            const rightChild = getRightChild(nodeKey);
+            const leftSize = leftChild ? getSubtreeSize(leftChild.key) : 0;
+            const rightSize = rightChild ? getSubtreeSize(rightChild.key) : 0;
+            const leftHeight = leftChild ? getSubtreeHeight(leftChild.key) : 0;
+            const rightHeight = rightChild ? getSubtreeHeight(rightChild.key) : 0;
+            document.getElementById('niKey').textContent = nodeKey;
+            document.getElementById('niParent').textContent = rn.parentKey || '—';
+            document.getElementById('niLevel').textContent = depth;
+            document.getElementById('niSize').textContent = size;
+            document.getElementById('niHeight').textContent = height;
+            document.getElementById('niLeftSize').textContent = leftSize;
+            document.getElementById('niRightSize').textContent = rightSize;
+            document.getElementById('niLeftHeight').textContent = leftHeight;
+            document.getElementById('niRightHeight').textContent = rightHeight;
+            const typeEl = document.getElementById('niType');
+            if (rn.parentKey === 0) { typeEl.textContent = '🌳 Raíz'; typeEl.className = 'value root'; }
+            else if (leftSize === 0 && rightSize === 0) { typeEl.textContent = '🍃 Hoja'; typeEl.className = 'value leaf'; }
+            else { typeEl.textContent = '🌿 Interno'; typeEl.className = 'value'; }
+            panel.classList.add('visible');
+        }
+        function hideNodeInfo() { document.getElementById('nodeInfoPanel').classList.remove('visible'); }
+
+        let mouseDownPos = { x: 0, y: 0 };
+        let isMouseDown = false;
+
+        function initNodeInfo() {
+            const canvas = document.getElementById('layerUI');
+            if (!canvas) return;
+            canvas.addEventListener('mousedown', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                mouseDownPos.x = (e.clientX - rect.left) * scaleX;
+                mouseDownPos.y = (e.clientY - rect.top) * scaleY;
+                isMouseDown = true;
+            });
+            window.addEventListener('mouseup', (e) => {
+                if (!isMouseDown) return;
+                isMouseDown = false;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                const mouseY = (e.clientY - rect.top) * scaleY;
+                const dx = mouseX - mouseDownPos.x;
+                const dy = mouseY - mouseDownPos.y;
+                if (Math.sqrt(dx*dx + dy*dy) > 15) return;
+                const world = Camera.screenToWorld(mouseX, mouseY);
+                const zoom = Camera.zoom;
+                const baseR = Math.min(RENDER_CONFIG.NODE_RADIUS_MAX, Math.max(RENDER_CONFIG.NODE_RADIUS_MIN, R / zoom));
+                const detectionRadius = Math.max(60 / zoom, baseR * 1.8);
+                let found = null;
+                let minDist = Infinity;
+                for (const rn of STATE.renderNodes) {
+                    const dx2 = rn.x - world.x;
+                    const dy2 = rn.y - world.y;
+                    const dist = Math.sqrt(dx2*dx2 + dy2*dy2);
+                    if (dist < detectionRadius && dist < minDist) { minDist = dist; found = rn; }
+                }
+                if (found) showNodeInfo(found.key);
+                else hideNodeInfo();
+            });
+            document.getElementById('closeNodeInfo').addEventListener('click', hideNodeInfo);
+        }
+
+        // ================================================================
+        //  UTILIDADES UI
+        // ================================================================
+        function setStatus(msg, type = '') {
+            if (!UI) return;
+            const el = UI.statusMsg;
+            el.textContent = msg;
+            el.className = 'status-msg ' + type;
+        }
+        function setEl(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+        function flash(id, val) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = val;
+            el.classList.remove('flash');
+            void el.offsetWidth;
+            el.classList.add('flash');
+        }
+        let toastTimer = null;
+        function toast(msg, type = 'info') {
+            if (!UI) return;
+            const t = UI.toast;
+            if (!t) return;
+            t.textContent = msg;
+            t.className = 'toast ' + type + ' show';
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), CONFIG.TOAST_DURATION);
+        }
+        function getInput() { if (!UI) return NaN; return parseInt(UI.numInput.value); }
+        function clearInput() { if (!UI) return; UI.numInput.value = ''; }
+        function getSpeed() { if (!UI) return 200; return parseInt(UI.speedSlider.value); }
+
+        // --- CONTROL DE BD ---
+        function fetchDBStatus() {
+            fetch(API_BASE + '/db-status')
+                .then(res => res.json())
+                .then(data => {
+                    dbEnabled = data.enabled;
+                    updateDBButton();
+                })
+                .catch(() => { dbEnabled = false; updateDBButton(); });
+        }
+
+        function toggleDB() {
+            const newState = !dbEnabled;
+            fetch(API_BASE + '/db-toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: newState })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    dbEnabled = data.enabled;
+                    updateDBButton();
+                    toast(`Conexión a BD ${dbEnabled ? 'activada' : 'desactivada'}`, 'info');
+                })
+                .catch(err => {
+                    toast('Error al cambiar estado de BD: ' + err.message, 'err');
+                });
+        }
+
+        function updateDBButton() {
+            const btn = document.getElementById('btnDBToggle');
+            if (dbEnabled) {
+                btn.textContent = '🔗 BD ON';
+                btn.className = 'btn btn-ghost btn-bd-on';
+            } else {
+                btn.textContent = '🔗 BD OFF';
+                btn.className = 'btn btn-ghost btn-bd-off';
+            }
+        }
+
+        // ================================================================
+        //  EVENTOS PRINCIPALES
+        // ================================================================
+        async function refreshTree() {
+            try {
+                const data = await api('/tree');
+                applyResponse(data);
+                setStatus('Árbol actualizado.', 'info');
+                STATE.layoutDirty = true;
+                startAnim();
+            } catch (e) {
+                setStatus('Error: ' + e.message, 'err');
+                toast('Error: ' + e.message, 'err');
+            }
+        }
+
+        function searchNode() {
+            const key = getInput();
+            if (isNaN(key)) { toast('Ingresa un número para buscar', 'warn'); return; }
+            clearInput();
+            enqueueOperation('search', key);
+            if (UI) UI.numInput.focus();
+        }
+        function deleteNode() {
+            const key = getInput();
+            if (isNaN(key)) { toast('Ingresa un número para eliminar', 'warn'); return; }
+            clearInput();
+            enqueueOperation('delete', key);
+            if (UI) UI.numInput.focus();
+        }
+
+        async function clearTree() {
+            if (!confirm('¿Limpiar el árbol completo?')) return;
+            try {
+                await api('/clear', 'POST');
+                STATE.root = null;
+                STATE.renderNodes.length = 0;
+                STATE.rebalCount = 0;
+                STATE.layoutVersion++;
+                STATE.renderVersion++;
+                STATE.layoutDirty = true;
+                SpatialIndex.markDirty();
+                Renderer.invalidateAll();
+                startAnim();
+                ['sNodes', 'sVisible', 'sHeight', 'sRebal'].forEach(id => setEl(id, 0));
+                setEl('badgeN', 'Nodos: 0');
+                setEl('badgeVis', '👁️ 0');
+                setStatus('Árbol limpiado.', 'info');
+                toast('Árbol reiniciado', 'info');
+                addHistoryEntry('Limpiar', '—', 'árbol reiniciado');
+                hideNodeInfo();
+                if (UI) UI.numInput.focus();
+            } catch (e) { toast('Error al limpiar: ' + e.message, 'err'); }
+        }
+
+        function toggleFiltro() {
+            RENDER_CONFIG.FILTRO_ACTIVADO = !RENDER_CONFIG.FILTRO_ACTIVADO;
+            const btn = document.getElementById('btnFiltro');
+            const badge = document.getElementById('badgeFiltro');
+            if (RENDER_CONFIG.FILTRO_ACTIVADO) {
+                btn.classList.add('active');
+                btn.innerHTML = '👁️ Filtro';
+                badge.textContent = '✅ Filtro ON';
+                toast('Filtro de visibilidad activado', 'info');
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = '🚫 Filtro OFF';
+                badge.textContent = '❌ Filtro OFF';
+                toast('Filtro desactivado — todos los nodos son visibles', 'warn');
+            }
+            STATE.layoutDirty = true;
+            Renderer.invalidateLabels();
+            startAnim();
+        }
+
+        // ================================================================
+        //  CARGA DEMO Y BENCHMARK
+        // ================================================================
+        async function startDemo() {
+            if (STATE.loading) return;
+            try {
+                if (UI) {
+                    UI.btnDemo.style.display = 'none';
+                    UI.btnBench.style.display = 'none';
+                    UI.btnStop.style.display = 'inline-flex';
+                }
+                const initData = await api('/init-load', 'POST');
+                STATE.totalLoad = initData.total || 0;
+                STATE.loadedN = 0;
+                STATE.loading = true;
+                if (UI) {
+                    UI.progWrap.classList.add('active');
+                    UI.progFill.style.width = '0%';
+                    UI.progTxt.textContent = `0 / ${STATE.totalLoad}`;
+                }
+                setStatus(`Modo Demo — cargando ${STATE.totalLoad} registros...`, 'info');
+                toast(`Iniciando carga demostrativa de ${STATE.totalLoad} registros`, 'info');
+                addHistoryEntry('Demo iniciada', `${STATE.totalLoad} registros`, '');
+                STATE.layoutDirty = true;
+                startAnim();
+                demoStep();
+            } catch (e) { endLoad(); toast('No se pudo iniciar la carga: ' + e.message, 'err'); }
+        }
+
+        async function demoStep() {
+            if (!STATE.loading) return;
+            try {
+                const sd = await api('/step-load', 'POST');
+                if (sd.done) {
+                    endLoad();
+                    setStatus(`Demo completada — ${STATE.totalLoad} registros insertados.`, 'ok');
+                    toast(`${STATE.totalLoad} nodos cargados`, 'ok');
+                    addHistoryEntry('Demo completada', `${STATE.totalLoad} nodos`, '✅');
+                    return;
+                }
+                STATE.loadedN = sd.progress;
+                const pct = Math.round((STATE.loadedN / STATE.totalLoad) * 100);
+                if (UI) {
+                    UI.progFill.style.width = pct + '%';
+                    UI.progTxt.textContent = `${STATE.loadedN} / ${STATE.totalLoad}`;
+                    UI.progLabel.textContent =
+                        `Demo: insertando #${STATE.loadedN}/${STATE.totalLoad}  —  último: ${sd.inserted}` +
+                        (sd.rebalanced ? '  ⚖️ REBALANCEO' : '');
+                }
+                const raw = sd.treeNodes || [];
+                const newRoot = buildTreeFromRaw(raw);
+                STATE.root = newRoot;
+                updateRenderNodes(newRoot, STATE.renderNodes);
+                const rn = STATE.renderNodes.find(r => r.key === sd.inserted);
+                if (rn) {
+                    rn.highlight = 'inserted';
+                    rn.opacity = 0;
+                    rn.scale = 0.5;
+                    rn.targetOpacity = 1;
+                    rn.targetScale = 1;
+                }
+                if (sd.scapegoatKey) {
+                    const sg = STATE.renderNodes.find(r => r.key === sd.scapegoatKey);
+                    if (sg) sg.highlight = 'scapegoat';
+                    STATE.activeScapegoatKey = sd.scapegoatKey;
+                    const rebalKeys = [];
+                    const collect = (node) => {
+                        if (!node) return;
+                        rebalKeys.push(node.key);
+                        collect(node.left);
+                        collect(node.right);
+                    };
+                    const findNode = (n, key) => {
+                        if (!n) return null;
+                        if (n.key === key) return n;
+                        return findNode(n.left, key) || findNode(n.right, key);
+                    };
+                    const sgNode = findNode(newRoot, sd.scapegoatKey);
+                    if (sgNode) collect(sgNode);
+                    if (rebalKeys.length) {
+                        STATE.rebalanceKeys = rebalKeys;
+                        animateRebalance(rebalKeys, sd.scapegoatKey);
+                        addHistoryEntry('Rebalanceo', `nodo ${sd.scapegoatKey}`, `subárbol de ${rebalKeys.length} nodos`);
+                    }
+                }
+                STATE.layoutVersion++;
+                STATE.renderVersion++;
+                STATE.layoutDirty = true;
+                Renderer.invalidateLabels();
+                startAnim();
+                flash('sNodes', sd.size ?? STATE.renderNodes.length);
+                setEl('sHeight', sd.height ?? 0);
+                setEl('badgeN', 'Nodos: ' + (sd.size ?? STATE.renderNodes.length));
+                if (sd.rebalanced) { STATE.rebalCount++; flash('sRebal', STATE.rebalCount); }
+                STATE.loadTimer = setTimeout(demoStep, getSpeed());
+            } catch (e) { endLoad(); toast('Error en la carga demo: ' + e.message, 'err'); }
+        }
+
+        function stopLoad() {
+            STATE.loading = false;
+            clearTimeout(STATE.loadTimer);
+            endLoad();
+            setStatus('Carga detenida por el usuario.', 'warn');
+            toast('Carga detenida', 'warn');
+            addHistoryEntry('Demo detenida', '—', '⏹');
+        }
+
+        function endLoad() {
+            STATE.loading = false;
+            if (UI) {
+                UI.btnDemo.style.display = 'inline-flex';
+                UI.btnBench.style.display = 'inline-flex';
+                UI.btnStop.style.display = 'none';
+                UI.progWrap.classList.remove('active');
+            }
+        }
+
+        async function startBench() {
+            if (STATE.loading) return;
+            if (UI) {
+                UI.btnDemo.style.display = 'none';
+                UI.btnBench.style.display = 'none';
+                UI.progWrap.classList.add('active');
+                UI.progFill.style.width = '0%';
+                UI.progTxt.textContent = 'Cargando...';
+                UI.progLabel.textContent = '⚡ Carga masiva...';
+            }
+            setStatus('Carga masiva en progreso...', 'info');
+            toast('Carga masiva iniciada...', 'info');
+            addHistoryEntry('Benchmark iniciado', '—', '');
+            STATE.layoutDirty = true;
+            startAnim();
+
+            try {
+                const t0 = performance.now();
+                const data = await api('/load-bench', 'POST');
+                const ms = Math.round(performance.now() - t0);
+                const raw = data.treeNodes || [];
+                const newRoot = buildTreeFromRaw(raw);
+                STATE.root = newRoot;
+                updateRenderNodes(newRoot, STATE.renderNodes);
+                if (data.scapegoatKey) {
+                    const sg = STATE.renderNodes.find(r => r.key === data.scapegoatKey);
+                    if (sg) sg.highlight = 'scapegoat';
+                    STATE.activeScapegoatKey = data.scapegoatKey;
+                    const rebalKeys = [];
+                    const collect = (node) => {
+                        if (!node) return;
+                        rebalKeys.push(node.key);
+                        collect(node.left);
+                        collect(node.right);
+                    };
+                    const findNode = (n, key) => {
+                        if (!n) return null;
+                        if (n.key === key) return n;
+                        return findNode(n.left, key) || findNode(n.right, key);
+                    };
+                    const sgNode = findNode(newRoot, data.scapegoatKey);
+                    if (sgNode) collect(sgNode);
+                    if (rebalKeys.length) {
+                        STATE.rebalanceKeys = rebalKeys;
+                        animateRebalance(rebalKeys, data.scapegoatKey);
+                        addHistoryEntry('Rebalanceo', `nodo ${data.scapegoatKey}`, `subárbol de ${rebalKeys.length} nodos`);
+                    }
+                }
+                STATE.layoutVersion++;
+                STATE.renderVersion++;
+                STATE.layoutDirty = true;
+                Renderer.invalidateLabels();
+                startAnim();
+                flash('sNodes', data.size ?? STATE.renderNodes.length);
+                setEl('sHeight', data.height ?? 0);
+                setEl('sAlpha', data.alpha ?? 0.75);
+                setEl('badgeN', 'Nodos: ' + (data.size ?? STATE.renderNodes.length));
+                STATE.rebalCount += (data.rebalanceCount ?? 0);
+                flash('sRebal', STATE.rebalCount);
+                if (UI) {
+                    UI.progFill.style.width = '100%';
+                    UI.progTxt.textContent = `${data.size} / ${data.size}`;
+                    UI.progLabel.textContent =
+                        `⚡ ${data.size} registros insertados en ${ms}ms` +
+                        (data.rebalanceCount ? ` (${data.rebalanceCount} rebalanceos)` : '');
+                }
+                setStatus(`Carga masiva completada: ${data.size} nodos en ${ms}ms`, 'ok');
+                toast(`${data.size} nodos en ${ms}ms`, 'ok');
+                addHistoryEntry('Benchmark completado', `${data.size} nodos`, `${ms}ms, ${data.rebalanceCount || 0} rebalanceos`);
+            } catch (e) {
+                toast('Error en carga masiva: ' + e.message, 'err');
+                setStatus('Error en carga masiva.', 'err');
+            }
+            endLoad();
+        }
+
+        // ================================================================
+        //  MAIN
+        // ================================================================
+        function initUI() {
+            UI = {
+                canvasWrap: document.getElementById('canvasWrap'),
+                layerBg: document.getElementById('layerBg'),
+                layerEdges: document.getElementById('layerEdges'),
+                layerNodes: document.getElementById('layerNodes'),
+                layerText: document.getElementById('layerText'),
+                layerUI: document.getElementById('layerUI'),
+                numInput: document.getElementById('numInput'),
+                btnInsert: document.getElementById('btnInsert'),
+                btnSearch: document.getElementById('btnSearch'),
+                btnDelete: document.getElementById('btnDelete'),
+                btnDemo: document.getElementById('btnDemo'),
+                btnBench: document.getElementById('btnBench'),
+                btnStop: document.getElementById('btnStop'),
+                btnRefresh: document.getElementById('btnRefresh'),
+                btnClear: document.getElementById('btnClear'),
+                btnCenter: document.getElementById('btnCenter'),
+                btnFiltro: document.getElementById('btnFiltro'),
+                speedSlider: document.getElementById('speedSlider'),
+                speedLabel: document.getElementById('speedLabel'),
+                progWrap: document.getElementById('progWrap'),
+                progFill: document.getElementById('progFill'),
+                progTxt: document.getElementById('progTxt'),
+                progLabel: document.getElementById('progLabel'),
+                statusMsg: document.getElementById('statusMsg'),
+                badgeN: document.getElementById('badgeN'),
+                badgeA: document.getElementById('badgeA'),
+                badgeZoom: document.getElementById('badgeZoom'),
+                badgeVis: document.getElementById('badgeVis'),
+                badgeFiltro: document.getElementById('badgeFiltro'),
+                sNodes: document.getElementById('sNodes'),
+                sVisible: document.getElementById('sVisible'),
+                sAlpha: document.getElementById('sAlpha'),
+                sHeight: document.getElementById('sHeight'),
+                sRebal: document.getElementById('sRebal'),
+                toast: document.getElementById('toast'),
+                historyList: document.getElementById('historyList'),
+                btnClearHistory: document.getElementById('btnClearHistory'),
+            };
+        }
+
+        function initApp() {
+            initUI();
+            Renderer.initLayers();
+            initZoom();
+            initPan();
+            initHistory();
+            initNodeInfo();
+            Renderer.invalidateAll();
+            STATE.layoutDirty = true;
+            SpatialIndex.build(STATE.renderNodes);
+            refreshTree();
+            startAnim();
+
+            if (UI) {
+                UI.speedSlider.addEventListener('input', function() {
+                    UI.speedLabel.textContent = this.value + 'ms';
+                });
+                UI.numInput.addEventListener('keydown', e => { if (e.key === 'Enter') insertNode(); });
+                UI.btnInsert.addEventListener('click', insertNode);
+                UI.btnSearch.addEventListener('click', searchNode);
+                UI.btnDelete.addEventListener('click', deleteNode);
+                UI.btnRefresh.addEventListener('click', refreshTree);
+                UI.btnClear.addEventListener('click', clearTree);
+                UI.btnDemo.addEventListener('click', startDemo);
+                UI.btnBench.addEventListener('click', startBench);
+                UI.btnStop.addEventListener('click', stopLoad);
+                UI.btnFiltro.addEventListener('click', toggleFiltro);
+                UI.btnCenter.addEventListener('click', () => {
+                    Camera.reset();
+                    Renderer.markCameraDirty();
+                    STATE.layoutDirty = true;
+                    startAnim();
+                    toast('Cámara centrada', 'info');
+                });
+
+                UI.btnDBToggle = document.getElementById('btnDBToggle');
+                UI.btnDBToggle.addEventListener('click', toggleDB);
+
+                document.getElementById('insertModalSubmit').addEventListener('click', submitInsertForm);
+
+                fetchDBStatus();
+            }
+        }
+
+        function initZoom() {
+            const canvas = document.getElementById('layerUI');
+            if (!canvas) return;
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                const mouseY = (e.clientY - rect.top) * scaleY;
+                const delta = e.deltaY > 0 ? 1 - ZOOM_CONFIG.STEP : 1 + ZOOM_CONFIG.STEP;
+                zoomAt(delta, mouseX, mouseY);
+                startAnim();
+            }, { passive: false });
+        }
+
+        let isDragging = false;
+        let dragStartX = 0, dragStartY = 0;
+        let dragStartCamX = 0, dragStartCamY = 0;
+
+        function initPan() {
+            const canvas = document.getElementById('layerUI');
+            if (!canvas) return;
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                dragStartX = (e.clientX - rect.left) * scaleX;
+                dragStartY = (e.clientY - rect.top) * scaleY;
+                dragStartCamX = Camera.x;
+                dragStartCamY = Camera.y;
+                isDragging = true;
+                canvas.style.cursor = 'grabbing';
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                const mouseY = (e.clientY - rect.top) * scaleY;
+                Camera.x = dragStartCamX + (mouseX - dragStartX);
+                Camera.y = dragStartCamY + (mouseY - dragStartY);
+                Renderer.markCameraDirty();
+                STATE.layoutDirty = true;
+                startAnim();
+            });
+            window.addEventListener('mouseup', () => {
+                if (isDragging) { isDragging = false; if (canvas) canvas.style.cursor = 'grab'; }
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+    </script>
+</body>
+</html>

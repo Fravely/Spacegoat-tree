@@ -1,0 +1,14 @@
+{
+  "sqlserver": {
+    "host": "localhost",
+    "port": "1433",
+    "useWindowsAuth": true,
+    "user": "sa",
+    "password": "123456789",
+    "database": "InventarioProductosDB"
+  },
+  "table": {
+    "name": "Productos",
+    "keyColumn": "id"
+  }
+}
