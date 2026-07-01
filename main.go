@@ -15,19 +15,19 @@ import (
 	_ "github.com/microsoft/go-mssqldb"
 )
 
-//  ESTADO GLOBAL
+// ESTADO GLOBAL
 var (
-	tree       *ScapegoatTree
-	db         *sql.DB
-	mu         sync.Mutex
-	loadQueue  []int
-	loadIndex  int
-	loadTotal  int
-	dbEnabled  bool
-	dbMu       sync.Mutex
+	tree      *ScapegoatTree
+	db        *sql.DB
+	mu        sync.Mutex
+	loadQueue []int
+	loadIndex int
+	loadTotal int
+	dbEnabled bool
+	dbMu      sync.Mutex
 )
 
-//  RESPUESTA ESTÁNDAR
+// RESPUESTA ESTÁNDAR
 type TreeResponse struct {
 	TreeNodes      []SerializedNode `json:"treeNodes"`
 	Size           int              `json:"size"`
@@ -76,7 +76,7 @@ func cors(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-//  HANDLERS
+// HANDLERS
 func handleTree(w http.ResponseWriter, r *http.Request) {
 	if !cors(w, r) {
 		return
@@ -276,7 +276,7 @@ func handleClear(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(treeResponse(false, 0, ""))
 }
 
-//  ESTADO DE LA BD
+// ESTADO DE LA BD
 func handleDBStatus(w http.ResponseWriter, r *http.Request) {
 	if !cors(w, r) {
 		return
@@ -350,7 +350,6 @@ func handleTableColumns(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(columns)
 }
 
-
 //  CARGA DEMO Y BENCHMARK
 
 func handleInitLoad(w http.ResponseWriter, r *http.Request) {
@@ -419,6 +418,7 @@ func handleBenchLoad(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewEncoder(w).Encode(treeResponseWithCount(rebalances, lastScapegoat))
 }
+
 //  CONEXIÓN Y OPERACIONES SQL SERVER
 
 func initDB() (*sql.DB, error) {
@@ -566,7 +566,14 @@ func main() {
 	http.HandleFunc("/db-toggle", handleDBToggle)
 	http.HandleFunc("/table-columns", handleTableColumns)
 
-	http.Handle("/", http.FileServer(http.Dir("./")))
+	fileServer := http.FileServer(http.Dir("./"))
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.ServeFile(w, r, "scapegoat-tree.html")
+			return
+		}
+		fileServer.ServeHTTP(w, r)
+	})
 
 	fmt.Println("Scapegoat Tree  →  http://localhost:8080 ")
 	log.Fatal(http.ListenAndServe(":8080", nil))
