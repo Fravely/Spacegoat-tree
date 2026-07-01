@@ -21,106 +21,87 @@ de datos falla por cualquier motivo.
 
 ---
 
-## 2. Estructura de archivos
+## 2. Estructura del proyecto
 
 ```
 scapegoat-tree/
-├── main.go               # Servidor HTTP y endpoints
-├── tree.go                # Lógica del Scapegoat Tree
-├── scapegoat-tree.html    # Interfaz visual
-├── go.mod                 # Dependencias del proyecto
-└── README.md
+├── main.go                    # Punto de entrada (embebe la UI web)
+├── config.json                # Configuración de SQL Server y tabla
+├── scapegoat-tree.html        # Interfaz visual (fuente; se embebe al compilar)
+├── go.mod / go.sum
+├── scapegoat/                 # Núcleo algorítmico (genérico, sin HTTP ni BD)
+│   ├── tree.go
+│   ├── unit_test.go
+│   ├── extra_test.go
+│   └── benchmark_test.go
+└── internal/
+    ├── config/                # Carga de config.json
+    ├── database/              # Operaciones SQL Server
+    └── server/                # API REST + adaptador IntTree
 ```
 
-Todos estos archivos deben estar en la **misma carpeta**.
+El paquete `scapegoat/` es independiente de la web y de la base de datos:
+puedes ejecutar `go test ./scapegoat/...` de forma aislada.
 
 ---
 
 ## 3. Instalación de dependencias
 
-Desde la carpeta del proyecto, ejecuta:
+Desde la carpeta del proyecto:
 
 ```bash
 go mod tidy
 ```
 
-Esto descargará automáticamente la dependencia del driver de SQL Server
-(`github.com/microsoft/go-mssqldb`) y dejará el `go.mod`/`go.sum`
-correctos.
-
-Si prefieres instalarla manualmente:
-
-```bash
-go get github.com/microsoft/go-mssqldb
-```
+Esto descargará el driver de SQL Server (`github.com/microsoft/go-mssqldb`).
 
 > **Nota:** el driver antiguo `github.com/denisenkom/go-mssqldb` está
 > descontinuado. Este proyecto usa el sucesor oficial mantenido por
-> Microsoft, que es compatible con el mismo API.
+> Microsoft.
 
 ---
 
 ## 4. Configurar la conexión a SQL Server (opcional)
 
-La conexión se configura con **variables de entorno**. Si no las
-defines, el programa usa valores de relleno y, si la conexión falla,
-**cae automáticamente** a generar 500 números de prueba (1 a 500) sin
-detener el servidor.
+La conexión se define en **`config.json`** en la raíz del proyecto (o
+junto al ejecutable compilado). Si el archivo no existe o la conexión
+falla, el servidor **no se detiene** y usa 500 números de prueba (1–500).
 
-| Variable             | Ejemplo           | Descripción                  |
-|-----------------------|-------------------|-------------------------------|
-| `SQLSERVER_HOST`      | `localhost`       | Host o IP del servidor        |
-| `SQLSERVER_PORT`      | `1433`            | Puerto (1433 por defecto)     |
-| `SQLSERVER_USER`      | `sa`              | Usuario de SQL Server         |
-| `SQLSERVER_PASSWORD`  | `MiPassword123`   | Contraseña                    |
-| `SQLSERVER_DATABASE`  | `MiBaseDeDatos`   | Nombre de la base de datos    |
+Ejemplo de `config.json`:
 
-### Windows (PowerShell)
-
-```powershell
-$env:SQLSERVER_HOST="localhost"
-$env:SQLSERVER_PORT="1433"
-$env:SQLSERVER_USER="sa"
-$env:SQLSERVER_PASSWORD="TuPassword"
-$env:SQLSERVER_DATABASE="TuBaseDeDatos"
+```json
+{
+  "sqlserver": {
+    "host": "localhost",
+    "port": "1433",
+    "useWindowsAuth": false,
+    "user": "sa",
+    "password": "TuPassword",
+    "database": "ScapegoatDemo"
+  },
+  "table": {
+    "name": "Productos",
+    "keyColumn": "id"
+  }
+}
 ```
 
-### Linux / macOS
-
-```bash
-export SQLSERVER_HOST=localhost
-export SQLSERVER_PORT=1433
-export SQLSERVER_USER=sa
-export SQLSERVER_PASSWORD=TuPassword
-export SQLSERVER_DATABASE=TuBaseDeDatos
-```
-
-Estas variables deben configurarse **antes** de ejecutar `go run` o el
-ejecutable compilado, en la misma terminal.
-
-### Ajustar la consulta SQL
-
-En `main.go`, dentro de `fetchIDsFromDB()`, ajusta esta línea a tu
-tabla y columna reales:
-
-```go
-rows, err := db.QueryContext(ctx, "SELECT ID FROM TuTabla ORDER BY ID")
-```
-
-Por ejemplo, si tu tabla se llama `Clientes` y la columna `IdCliente`:
-
-```go
-rows, err := db.QueryContext(ctx, "SELECT IdCliente FROM Clientes ORDER BY IdCliente")
-```
+| Campo | Descripción |
+|-------|-------------|
+| `sqlserver.host` | Host o IP del servidor |
+| `sqlserver.port` | Puerto (1433 por defecto) |
+| `sqlserver.useWindowsAuth` | `true` para autenticación integrada de Windows |
+| `sqlserver.user` / `password` | Credenciales SQL (si `useWindowsAuth` es `false`) |
+| `sqlserver.database` | Nombre de la base de datos |
+| `table.name` | Tabla de la que se leen los IDs |
+| `table.keyColumn` | Columna entera que actúa como clave del árbol |
 
 ### Comportamiento si la conexión falla
 
-Si las credenciales son incorrectas, el servidor no responde, hay un
-timeout, la tabla no existe, o cualquier otro error: el programa
-**no se detiene**. Imprime una advertencia en la consola y usa
-automáticamente la secuencia de 500 números de prueba (1 al 500), tal
-como hacía antes. Esto aplica tanto al iniciar el programa (intento de
-conexión) como a cada llamada a `/init-load` o `/load-bench`.
+Si las credenciales son incorrectas, el servidor no responde, hay timeout,
+la tabla no existe, o cualquier otro error: el programa imprime una
+advertencia y usa la secuencia de 500 números de prueba. Esto aplica al
+arranque y a cada llamada a `/init-load` o `/load-bench`.
 
 ---
 
@@ -129,84 +110,111 @@ conexión) como a cada llamada a `/init-load` o `/load-bench`.
 Desde la carpeta del proyecto:
 
 ```bash
-go run main.go tree.go
+go run .
 ```
 
 Si todo está bien, verás algo como:
 
 ```
+✅ Configuración cargada desde "config.json": tabla="Productos", ...
 ✅ Conectado a SQL Server correctamente
-╔═══════════════════════════════════════════╗
-║  Scapegoat Tree  →  http://localhost:8080 ║
-╚═══════════════════════════════════════════╝
+Scapegoat Tree  →  http://localhost:8080
 ```
 
-O, si no hay conexión a la base de datos:
+El navegador se abre automáticamente en Windows. La página HTML va
+**embebida en el ejecutable**, así que no depende del directorio desde
+el que lo ejecutes.
 
-```
-⚠️  No se pudo conectar a SQL Server: ...
-⚠️  El servidor seguirá funcionando con datos de prueba (1-500)
-╔═══════════════════════════════════════════╗
-║  Scapegoat Tree  →  http://localhost:8080 ║
-╚═══════════════════════════════════════════╝
-```
-
-En ambos casos el servidor queda funcionando en `http://localhost:8080`.
+Si no hay conexión a la base de datos, el servidor arranca igual con
+datos de prueba (1–500).
 
 ---
 
 ## 6. Abrir la interfaz visual
 
-Con el servidor corriendo, abre en tu navegador:
+Con el servidor corriendo:
 
 ```
 http://localhost:8080
 ```
 
-Esto carga `scapegoat-tree.html`, que se conecta a la API en
-`http://localhost:8080` automáticamente.
+La página se conecta a la API en `http://localhost:8080` automáticamente.
 
 ---
 
 ## 7. Endpoints disponibles
 
-| Método | Endpoint       | Descripción                                          |
-|--------|----------------|-------------------------------------------------------|
-| GET    | `/tree`        | Devuelve el estado actual del árbol                   |
-| GET    | `/insert?key=N`| Inserta la clave N                                    |
-| GET    | `/search?key=N`| Busca la clave N y devuelve el camino recorrido       |
-| GET    | `/delete?key=N`| Elimina la clave N                                    |
-| GET    | `/clear`       | Vacía el árbol                                        |
-| GET    | `/init-load`   | Prepara una cola de IDs (BD o fallback) para cargar paso a paso |
-| GET    | `/step-load`   | Inserta el siguiente ID de la cola preparada           |
-| GET    | `/load-bench`  | Carga todos los IDs de golpe (benchmark)               |
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/tree` | Estado actual del árbol |
+| GET | `/insert?key=N` | Inserta la clave N (solo memoria) |
+| POST | `/insert` | Inserta con JSON (sincroniza con BD si está activa) |
+| GET | `/search?key=N` | Busca la clave N y devuelve el camino |
+| GET | `/delete?key=N` | Elimina la clave N |
+| GET | `/clear` | Vacía el árbol |
+| GET | `/init-load` | Prepara cola de IDs (BD o fallback) |
+| GET | `/step-load` | Inserta el siguiente ID de la cola |
+| GET | `/load-bench` | Carga todos los IDs de golpe (benchmark HTTP) |
+| GET | `/db-status` | Indica si la BD está activa |
+| POST | `/db-toggle` | Activa/desactiva sincronización con BD |
+| GET | `/table-columns` | Metadatos de columnas de la tabla |
 
 ---
 
-## 8. Compilar un ejecutable (opcional)
+## 8. Pruebas unitarias y benchmarks
 
-Si quieres un binario en vez de usar `go run` cada vez:
+El núcleo algorítmico vive en `scapegoat/` con pruebas y benchmarks
+independientes del servidor web.
 
 ```bash
-go build -o scapegoat-server main.go tree.go
+# Pruebas unitarias (16 tests)
+go test ./scapegoat/... -v
+
+# Benchmarks escalonados (1K, 5K, 10K, 50K nodos)
+go test -bench=Benchmark -benchmem ./scapegoat/
+
+# Solo inserción o búsqueda
+go test -bench=BenchmarkInsert -benchmem ./scapegoat/
+go test -bench=BenchmarkSearch -benchmem ./scapegoat/
+```
+
+| Benchmark | Qué mide |
+|-----------|----------|
+| `BenchmarkInsert` | Inserción ordenada a 1K–50K nodos |
+| `BenchmarkInsertRandom` | Inserción aleatoria a 1K–50K nodos |
+| `BenchmarkSearch` | Búsqueda en árboles de 1K–100K nodos |
+| `BenchmarkDelete` | Inserción + eliminación completa |
+| `BenchmarkInOrder` | Recorrido in-order |
+| `BenchmarkMixedWorkload` | Carga mixta sobre 10K nodos |
+
+---
+
+## 9. Compilar un ejecutable (opcional)
+
+```bash
+go build -o scapegoat-server.exe .
 ./scapegoat-server        # Linux/Mac
 scapegoat-server.exe      # Windows
 ```
 
+Coloca `config.json` junto al `.exe` si quieres personalizar la conexión
+a SQL Server fuera de la carpeta del proyecto.
+
 ---
 
-## 9. Problemas comunes
+## 10. Problemas comunes
 
 - **`go: command not found`** → Go no está instalado o no está en el
   PATH. Reinstala desde https://go.dev/dl/ y reinicia la terminal.
-- **El servidor arranca pero siempre usa los 500 números** → revisa que
-  las variables de entorno estén bien escritas y definidas en la misma
-  terminal donde ejecutas `go run`. Revisa también el mensaje de error
-  que se imprime en consola; indica la causa exacta (credenciales,
-  timeout, tabla inexistente, etc.).
-- **Error de firewall/puerto** → confirma que el puerto de SQL Server
-  (1433 por defecto) esté abierto y accesible desde donde corres el
-  programa.
-- **Puerto 8080 ocupado** → cierra el proceso que lo esté usando o
-  cambia el puerto en la última línea de `main.go`
-  (`http.ListenAndServe(":8080", nil)`).
+- **El servidor arranca pero siempre usa los 500 números** → revisa
+  `config.json` (host, credenciales, nombre de tabla/columna). Mira el
+  mensaje de error en consola.
+- **Puerto 8080 ocupado** → cierra la instancia anterior:
+  ```powershell
+  Get-NetTCPConnection -LocalPort 8080 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+  ```
+  Luego vuelve a ejecutar `go run .`.
+- **La página no carga** → confirma que el servidor esté corriendo y
+  abre exactamente `http://localhost:8080` (con los dos puntos).
+- **Error de firewall/puerto SQL** → confirma que el puerto 1433 esté
+  accesible desde donde corres el programa.
