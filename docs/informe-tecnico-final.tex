@@ -1,0 +1,66 @@
+\documentclass[12pt,a4paper,oneside]{report}
+\input{latex/preamble}
+
+\begin{document}
+
+%==============================================================================
+% PORTADA
+%==============================================================================
+\begin{titlepage}
+  \thispagestyle{empty}
+  \centering
+  \vspace*{1.2cm}
+  {\large\textbf{UNIVERSIDAD ESAN}\par}
+  \vspace{0.3cm}
+  {\normalsize Facultad de Ciencias de la Computación\par}
+  \vspace{2.2cm}
+  {\huge\bfseries\color{esanblue} INFORME TÉCNICO FINAL\par}
+  \vspace{1.2cm}
+  {\Large Estudio, implementación, integración con base de datos\\[0.35em]
+  y simulación visual del \Scapegoat\par}
+  \vspace{2cm}
+  \begin{tabular}{@{}p{4.2cm}p{9.2cm}@{}}
+    \toprule
+    \textbf{Curso} & Algoritmos y Estructura de Datos (2026-1) \\
+    \textbf{Docente} & Marks Calderón Niquin \\
+    \textbf{Integrantes} & [Nombre Apellido --- Código] \\
+    & [Nombre Apellido --- Código] \\
+    \textbf{Repositorio} & \url{https://github.com/Fravely/Spacegoat-tree} \\
+    \textbf{Base de datos} & Microsoft SQL Server (\texttt{go-mssqldb}) \\
+    \textbf{Implementación} & Go 1.23 \textbullet{} Vue.js 3 \\
+    \textbf{Fecha} & Junio 2026 \\
+    \bottomrule
+  \end{tabular}
+  \vfill
+  {\small Trabajo Final --- Semestre Académico 2026-1\par}
+\end{titlepage}
+
+\pagenumbering{roman}
+\chapter*{Resumen}
+\phantomsection
+\addcontentsline{toc}{chapter}{Resumen}
+
+El presente informe documenta el estudio, diseño e implementación del \textbf{\Scapegoat}, estructura de datos de búsqueda balanceada propuesta por Galperin y Rivest (1993), en el marco del curso de Algoritmos y Estructura de Datos de la Universidad ESAN. A diferencia de los árboles AVL o Red-Black, esta estructura restaura el balance mediante la reconstrucción completa de subárboles desbalanceados ---seleccionando un nodo \textit{scapegoat}--- en lugar de aplicar rotaciones locales ni almacenar metadatos de balance por nodo.
+
+El trabajo comprende cuatro componentes integrados: un paquete genérico en Go (\texttt{scapegoat/}) con operaciones de inserción, búsqueda, eliminación y trazabilidad algorítmica; una capa de persistencia sobre SQL Server; una API REST que sincroniza la base de datos con el índice en memoria; y una interfaz Vue.js que visualiza el árbol y anima el proceso de reconstrucción. Las pruebas unitarias, los benchmarks y la comparación contra un \texttt{map} de referencia validan el comportamiento esperado. Los resultados experimentales confirman que las inserciones ordenadas provocan reconstrucciones frecuentes, mientras que la búsqueda mantiene tiempos estables del orden de 214~ns/op con $n = 10^5$ nodos.
+
+\vspace{0.8em}
+\noindent\textbf{Palabras clave:} Scapegoat Tree, árbol binario de búsqueda, balance por reconstrucción, Go, SQL Server, complejidad amortizada, estructuras de datos.
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\pagenumbering{arabic}
+
+\input{latex/capitulo01}
+\input{latex/capitulo02}
+\input{latex/capitulo03}
+\input{latex/capitulo04}
+\input{latex/capitulo05}
+\input{latex/capitulo06}
+\input{latex/capitulo07}
+\input{latex/capitulo08}
+\input{latex/referencias}
+
+\end{document}

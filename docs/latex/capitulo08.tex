@@ -1,0 +1,44 @@
+\chapter{Conclusiones y recomendaciones}
+
+\section{Conclusiones de ingeniería}
+
+La implementación del \Scapegoat{} en Go cumple las invariantes teóricas de Galperin y Rivest: inserciones ordenadas disparan reconstrucciones, eliminaciones masivas activan rebuild global, y 5000 operaciones aleatorias coinciden con un \texttt{map} de referencia.
+
+La búsqueda es estable ($\sim$214~ns/op con $n=10^5$, cero allocations). La separación SQL Server / índice en RAM demostró ser arquitectónicamente sólida. La simulación Vue transformó un algoritmo abstracto en un artefacto observable.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    box/.style={rectangle, draw, rounded corners, align=center, font=\footnotesize, minimum width=2cm, minimum height=0.75cm},
+    arrow/.style={-{Stealth[length=2mm]}, thick}
+  ]
+    \node[box, fill=blue!10] (u) {Usuario};
+    \node[box, fill=blue!10, below=1cm of u] (b) {Navegador};
+    \node[box, fill=green!10, below left=1cm and 0.5cm of b] (api) {API REST};
+    \node[box, fill=green!10, below right=1cm and 0.5cm of b] (sql) {SQL Server};
+    \node[box, fill=orange!12, below=1cm of api] (st) {Scapegoat Tree};
+    \draw[arrow] (u) -- (b);
+    \draw[arrow] (b) -- (api);
+    \draw[arrow] (api) -- (st);
+    \draw[arrow] (api) -- (sql);
+  \end{tikzpicture}
+  \caption{Vista general del sistema entregado}
+  \label{fig:vista-general}
+\end{figure}
+
+\section{Limitaciones}
+
+\begin{itemize}
+  \item Dataset acotado a 8 productos semilla en la demo base.
+  \item \texttt{size(u)} sin caché: cuello de botella en detección de desbalance.
+  \item Sin persistencia de la forma del árbol; solo productos en SQL.
+  \item Mutex global en API: no escala horizontalmente.
+\end{itemize}
+
+\section{Lecciones aprendidas}
+
+Los punteros en Go deben reasignarse con cuidado durante \texttt{rebuild}. Las pruebas contra \texttt{map} fueron indispensables. El patrón \texttt{POST $\rightarrow$ GET /api/tree} mantiene la UI consistente, pero las animaciones requieren el snapshot previo a la mutación para mostrar caminos de búsqueda correctos.
+
+\section{Recomendaciones futuras}
+
+Almacenar \texttt{size} por nodo, pipeline de carga masiva con \texttt{BULK INSERT}, fuzz testing con \texttt{testing/fuzz}, y migración del frontend a Vue con Vite para producción.

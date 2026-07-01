@@ -1,0 +1,67 @@
+\chapter{Diseño de la API REST (Go)}
+
+El servidor en \go{cmd/simulation/main.go} expone los endpoints sobre \go{http.ListenAndServe(":8080", mux)}.
+
+\begin{table}[H]
+  \centering
+  \caption{Endpoints de la API REST}
+  \begin{tabular}{@{}llp{6.5cm}@{}}
+    \toprule
+    \textbf{Método} & \textbf{Ruta} & \textbf{Descripción} \\
+    \midrule
+    GET & \texttt{/api/tree} & Estado del árbol, métricas e \texttt{inOrder} \\
+    POST & \texttt{/api/products} & Insertar o actualizar producto \\
+    GET & \texttt{/api/products/\{id\}} & Búsqueda por ID en el árbol \\
+    DELETE & \texttt{/api/products/\{id\}} & Eliminar producto \\
+    POST & \texttt{/api/reset} & Reiniciar dataset semilla \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Ejemplo de respuesta con traza}
+
+\begin{lstlisting}[style=jsoncode,caption={Fragmento de respuesta POST /api/products}]
+{
+  "message": "Producto 109 insertado",
+  "trace": {
+    "path": [105, 109],
+    "inserted": true,
+    "depth": 1,
+    "maxDepth": 3,
+    "scapegoat": null,
+    "rebuiltKeys": []
+  }
+}
+\end{lstlisting}
+
+\section{Sincronización y concurrencia}
+
+\begin{lstlisting}[style=gocode,caption={Estado compartido protegido con mutex}]
+type appState struct {
+    mu   sync.Mutex
+    tree *scapegoat.Tree[int, db.Product]
+    sql  *sql.DB
+    mode string
+}
+\end{lstlisting}
+
+Cada handler adquiere \texttt{mu} antes de mutar o leer \texttt{tree}. Las operaciones SQL usan \texttt{context.WithTimeout} de 10 segundos.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    actor/.style={rectangle, draw, rounded corners, minimum width=1.8cm, align=center, font=\footnotesize},
+    arrow/.style={-{Stealth[length=2mm]}, thick}
+  ]
+    \node[actor] (u) {Usuario};
+    \node[actor, right=1cm of u] (v) {Vue};
+    \node[actor, right=1cm of v] (a) {API};
+    \node[actor, right=1cm of a] (t) {Árbol};
+    \draw[arrow] (u) -- (v);
+    \draw[arrow] (v) -- node[above, font=\tiny]{POST} (a);
+    \draw[arrow] (a) -- node[above, font=\tiny]{InsertWithTrace} (t);
+    \draw[arrow] (t) -- node[below, font=\tiny]{trace JSON} (v);
+  \end{tikzpicture}
+  \caption{Secuencia de inserción vía API}
+  \label{fig:seq-api}
+\end{figure}

@@ -1,0 +1,40 @@
+\chapter*{Referencias}
+\phantomsection
+\addcontentsline{toc}{chapter}{Referencias}
+
+\begin{enumerate}[label={[\arabic*]}, leftmargin=2em, itemsep=0.4em]
+  \item Galperin, G. F., \& Rivest, R. L. (1993). \textit{Scapegoat trees}. Proceedings of the Fourth Annual ACM-SIAM Symposium on Discrete Algorithms (SODA), 165--174.
+  \item Cormen, T. H., Leiserson, C. E., Rivest, R. L., \& Stein, C. (2009). \textit{Introduction to Algorithms} (3rd ed.). MIT Press. Capítulos 12--13.
+  \item Go Project. (2024). \textit{Go Generics}. \url{https://go.dev/doc/tutorial/generics}
+  \item Microsoft. (2024). \textit{SQL Server Documentation}. \url{https://learn.microsoft.com/sql/}
+  \item Vue.js Project. (2024). \textit{Vue.js 3 Guide}. \url{https://vuejs.org/guide/}
+\end{enumerate}
+
+\chapter*{Anexo A --- Comandos de ejecución}
+\phantomsection
+\addcontentsline{toc}{chapter}{Anexo A --- Comandos de ejecución}
+
+\begin{lstlisting}[style=gocode]
+go test ./scapegoat/...
+go test -bench=Benchmark -benchmem ./scapegoat/
+go run ./cmd/sqlserver-demo
+go run ./cmd/simulation
+\end{lstlisting}
+
+\chapter*{Anexo B --- Variables de entorno SQL Server}
+\phantomsection
+\addcontentsline{toc}{chapter}{Anexo B --- Variables de entorno}
+
+\begin{lstlisting}[style=pscode]
+$env:SQLSERVER_HOST="localhost"
+$env:SQLSERVER_DATABASE="InventarioProductosDB"
+$env:SQLSERVER_USER="sa"
+$env:SQLSERVER_PASSWORD="TuPassword"
+$env:SQLSERVER_ENCRYPT="disable"
+$env:SQLSERVER_TRUST_CERT="true"
+\end{lstlisting}
+
+\vfill
+\begin{center}
+  \small\textit{Documento generado para el Trabajo Final de Algoritmos y Estructura de Datos --- Universidad ESAN --- Semestre 2026-1.}
+\end{center}

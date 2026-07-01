@@ -5,7 +5,7 @@
     "useWindowsAuth": true,
     "user": "sa",
     "password": "123456789",
-    "database": "InventarioProductosDB"
+    "database": "ScapegoatDemo"
   },
   "table": {
     "name": "Productos",

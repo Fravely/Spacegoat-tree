@@ -1,0 +1,56 @@
+\chapter{Interfaz interactiva y simulación (frontend en Vue.js)}
+
+\section{Arquitectura del frontend}
+
+La interfaz carga Vue~3 desde CDN y monta \texttt{\#app} con la API de opciones. Estado reactivo principal:
+
+\begin{table}[H]
+  \centering
+  \caption{Estado reactivo de la simulación Vue}
+  \begin{tabular}{@{}lp{9cm}@{}}
+    \toprule
+    \textbf{Propiedad} & \textbf{Función} \\
+    \midrule
+    \texttt{root} & Snapshot del árbol desde API \\
+    \texttt{stats} & Contadores: nodos, altura, $q$, rebuilds \\
+    \texttt{activeNodes} & Mapa id $\rightarrow$ tipo de animación CSS \\
+    \texttt{stepText} & Mensaje pedagógico del paso actual \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Flujo de animación del scapegoat}
+
+Tras \texttt{POST /api/products}, la función \texttt{playInsertTrace}:
+\begin{enumerate}
+  \item Recorre \texttt{trace.path} nodo a nodo (\texttt{playPath}).
+  \item Muestra profundidad vs.\ \texttt{maxDepth}.
+  \item Si \texttt{trace.scapegoat} existe: resalta el nodo culpable y luego \texttt{rebuiltKeys}.
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    state/.style={rectangle, rounded corners, draw, minimum width=2.4cm, minimum height=0.7cm, align=center, font=\footnotesize},
+    arrow/.style={-{Stealth[length=2mm]}, thick}
+  ]
+    \node[state] (a) {Cargar árbol};
+    \node[state, below=0.7cm of a] (b) {Insertar};
+    \node[state, below=0.7cm of b] (c) {Animar camino};
+    \node[state, below=0.7cm of c] (d) {¿Scapegoat?};
+    \node[state, below left=0.8cm and 1cm of d] (e) {Fin};
+    \node[state, below right=0.8cm and 1cm of d] (f) {Rebuild visual};
+    \draw[arrow] (a) -- (b);
+    \draw[arrow] (b) -- (c);
+    \draw[arrow] (c) -- (d);
+    \draw[arrow] (d) -- node[left, font=\tiny]{No} (e);
+    \draw[arrow] (d) -- node[right, font=\tiny]{Sí} (f);
+    \draw[arrow] (f) |- (a);
+  \end{tikzpicture}
+  \caption{Ciclo de animación en Vue.js}
+  \label{fig:vue-anim}
+\end{figure}
+
+\section{Uso de inteligencia artificial}
+
+El frontend recibió asistencia de herramientas de IA generativa para layout HTML/CSS y animaciones. El equipo revisó manualmente \texttt{findPath}, \texttt{renderTree} y la integración con \texttt{InsertTrace}. El algoritmo del \Scapegoat{} y la capa de persistencia fueron implementados sin asistencia automatizada en su lógica central.

@@ -1,0 +1,148 @@
+% Preámbulo compartido — Informe Técnico Scapegoat Tree
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{mathptmx}
+\usepackage{textcomp}
+\usepackage{microtype}
+\usepackage{geometry}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,calc}
+
+\pgfplotsset{compat=1.18}
+
+\geometry{left=3cm, right=2.5cm, top=2.8cm, bottom=2.8cm}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{1.2em}
+\linespread{1.15}
+
+\definecolor{codebg}{RGB}{244,246,248}
+\definecolor{codeframe}{RGB}{49,87,213}
+\definecolor{esanblue}{RGB}{26,26,46}
+
+% Lenguaje Go para listings (no viene por defecto)
+\lstdefinelanguage{Go}{
+  morekeywords={break,case,chan,const,continue,default,defer,else,fallthrough,for,func,go,goto,if,import,interface,map,package,range,return,select,struct,switch,type,var,bool,byte,complex64,complex128,error,float32,float64,int,int8,int16,int32,int64,rune,string,uint,uint8,uint16,uint32,uint64,uintptr,true,false,nil},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+}
+
+\lstdefinestyle{goi}{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=false,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+}
+
+% Código inline Go con caracteres especiales (genéricos, llaves, etc.)
+\newcommand{\go}[1]{\lstinline[style=goi]|#1|}
+
+\lstdefinestyle{gocode}{
+  language=Go,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{teal},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=8pt,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  tabsize=4,
+  showstringspaces=false,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {ñ}{{\~n}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1 {Ñ}{{\~N}}1
+}
+
+\lstdefinestyle{sqlcode}{
+  language=SQL,
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true
+}
+
+\lstdefinestyle{jsoncode}{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true
+}
+
+\lstdefinestyle{pscode}{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  literate={\$}{{\$}}1
+}
+
+\captionsetup{
+  font=small,
+  labelfont=bf,
+  justification=centering,
+  skip=8pt
+}
+
+\captionsetup[lstlisting]{singlelinecheck=false}
+
+\setlength{\headheight}{15pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{Algoritmos y Estructura de Datos --- ESAN 2026-1}}
+\fancyhead[R]{\small\textit{Scapegoat Tree}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\color{esanblue}}
+  {\chaptertitlename\ \thechapter}{12pt}{\Large}
+\titlespacing*{\chapter}{0pt}{-10pt}{20pt}
+
+\titleformat{\section}{\normalfont\bfseries\color{esanblue}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\normalfont\bfseries}{\thesubsection}{0.8em}{}
+
+\newtheorem{teorema}{Teorema}[chapter]
+\newtheorem{invariante}[teorema]{Invariante}
+
+\newcommand{\bigO}{\mathcal{O}}
+\newcommand{\Scapegoat}{\textit{Scapegoat Tree}}
+
+% hyperref al final del preámbulo
+\usepackage{hyperref}
+\usepackage{bookmark}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=NavyBlue,
+  citecolor=NavyBlue,
+  urlcolor=NavyBlue,
+  pdftitle={Informe Tecnico --- Scapegoat Tree},
+  pdfauthor={Universidad ESAN}
+}
